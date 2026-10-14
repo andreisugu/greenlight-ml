@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/andreisugu/greenlight-ml/main/assets/banner.svg" alt="GreenlightML banner" width="560" onerror="this.style.display='none'"/>
+  <img src="./assets/banner.svg" alt="GreenlightML banner" width="860" />
 </p>
 
 <h1 align="center">greenlight-ml</h1>
