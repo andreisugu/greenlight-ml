@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.data import load_and_merge_data, filter_clean_theatrical
+from src.data import load_and_merge_data, filter_clean_theatrical, filter_scale_anomalies
 from src.features import build_features
 from src.models import get_logistic_regression, get_random_forest
 from src.metrics import evaluate_model
@@ -21,14 +21,15 @@ def run_benchmark():
         return
 
     df_clean = filter_clean_theatrical(df_raw)
-    X_pre, X_leak, y = build_features(df_clean)
+    df_model = filter_scale_anomalies(df_clean)
+    X_pre, X_leak, y = build_features(df_model)
 
     X_tr_pre, X_te_pre, y_tr, y_te, idx_tr, idx_te = train_test_split(
-        X_pre, y, df_clean.index, test_size=0.2, random_state=42, stratify=y
+        X_pre, y, df_model.index, test_size=0.2, random_state=42, stratify=y
     )
     X_tr_leak = X_leak.loc[idx_tr]
     X_te_leak = X_leak.loc[idx_te]
-    test_slice = df_clean.loc[idx_te]
+    test_slice = df_model.loc[idx_te]
 
     scaler_pre = StandardScaler()
     X_tr_pre_sc = scaler_pre.fit_transform(X_tr_pre)

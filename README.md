@@ -28,7 +28,7 @@ Pre-release commercial film success modeling, simulated portfolio ROI optimizati
   <img src="https://img.shields.io/badge/python-3.10+-047857?style=flat-square" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/dataset-TMDB_5000-047857?style=flat-square" alt="TMDB 5000 Dataset" />
   <img src="https://img.shields.io/badge/status-in_development-047857?style=flat-square" alt="Status: In Development" />
-  <img src="https://img.shields.io/badge/stage-architecture_%26_scaffolding-047857?style=flat-square" alt="Stage" />
+  <img src="https://img.shields.io/badge/stage-eda_%26_schema_audit-047857?style=flat-square" alt="Stage" />
 </p>
 
 ---
@@ -78,8 +78,8 @@ Most published film prediction papers claim ~80% accuracy. Almost all of them ar
 
 ## 🗺️ Project Roadmap & Current Status
 
-* [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** *(Current)* — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
-* [ ] **Phase 2: Exploratory Data Analysis & Schema Audits** — Systematic distribution modeling, outlier pruning (26 scale anomalies), and correlation heatmaps ([`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb)).
+* [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
+* [x] **Phase 2: Exploratory Data Analysis & Schema Audits** *(Current)* — Systematic distribution modeling, outlier pruning (26 scale anomalies), and correlation heatmaps ([`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb)).
 * [ ] **Phase 3: Regularized Linear Baseline Modeling** — Logistic Regression with cross-validated penalty sweeps ($C$, solvers) vs. Naive Majority baseline ([`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb)).
 * [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
 * [ ] **Phase 5: Leakage Auditing & Portfolio Simulation** — Controlled post-release leakage experiments, Hollywood 2.0x break-even evaluation, and simulated net portfolio ROI allocator ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
@@ -88,17 +88,17 @@ Most published film prediction papers claim ~80% accuracy. Almost all of them ar
 
 ## 📊 Evaluation Framework & Baseline Simulation
 
-> ℹ️ **Scaffolding Baseline Note:** The metrics below represent the preliminary proof-of-concept simulation generated during project setup (`scripts/benchmark.py`) to validate pipeline interfaces, test holdout splits, and establish reference targets. Model training, hyperparameter sweeps, and ablation studies are actively conducted in the respective notebooks.
+> ℹ️ **Scaffolding Baseline Note:** The metrics below represent the preliminary proof-of-concept simulation generated during project setup (`scripts/benchmark.py`) to validate pipeline interfaces, test holdout splits, and establish reference targets. All receipts run on the **canonical 3,203-title modeling set** (post scale-anomaly prune, see the [EDA notebook](./notebooks/01_exploratory_data_analysis.ipynb)). Model training, hyperparameter sweeps, and ablation studies are actively conducted in the respective notebooks.
 
-Evaluated on an 80/20 stratified holdout split (646 unseen titles, random seed 42):
+Evaluated on an 80/20 stratified holdout split (641 unseen titles, random seed 42):
 
 | Model / Strategy | Information Scope | Accuracy | Precision | Recall | F1 Score | ROC-AUC | Net Portfolio ROI | Titles Picked |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Market Index Benchmark** | *Passive (Fund all)* | 0.7554 | 0.7554 | **1.0000** | 0.8607 | 0.5000 | +177.76% | 646 / 646 |
-| **Logistic Regression** | **Pre-release only** | 0.7430 | **0.7657** | 0.9508 | 0.8483 | **0.6209** | **+181.76%** | 606 / 646 |
-| **Random Forest (100 est.)** | **Pre-release only** | 0.7523 | 0.7628 | 0.9754 | 0.8561 | 0.6101 | +179.65% | 624 / 646 |
-| **Logistic Regression (LEAKED)** | *Post-release ⚠️* | 0.8050 | 0.8591 | 0.8873 | 0.8730 | 0.8139 | +207.13% | 504 / 646 |
-| **Random Forest (LEAKED)** | *Post-release ⚠️* | **0.8111** | 0.8427 | 0.9221 | **0.8806** | **0.8343** | +202.04% | 534 / 646 |
+| **Market Index Benchmark** | *Passive (Fund all)* | 0.7582 | 0.7582 | **1.0000** | 0.8625 | 0.5000 | +180.70% | 641 / 641 |
+| **Logistic Regression** | **Pre-release only** | 0.7457 | **0.7687** | 0.9506 | 0.8500 | **0.6206** | **+184.98%** | 601 / 641 |
+| **Random Forest (100 est.)** | **Pre-release only** | 0.7457 | 0.7626 | 0.9650 | 0.8520 | 0.5992 | +181.72% | 615 / 641 |
+| **Logistic Regression (LEAKED)** | *Post-release ⚠️* | 0.7863 | 0.8497 | 0.8724 | 0.8609 | 0.8114 | +212.98% | 499 / 641 |
+| **Random Forest (LEAKED)** | *Post-release ⚠️* | **0.8066** | 0.8415 | 0.9177 | **0.8780** | **0.8250** | +207.31% | 530 / 641 |
 
 ### Financial Evaluation Metric
 
@@ -106,7 +106,7 @@ Accuracy measures classification; **Net Portfolio ROI** measures whether you kee
 
 $$\text{Net Portfolio ROI} = \frac{\sum_{i \in \text{Selected}} (\text{Revenue}_i - \text{Budget}_i)}{\sum_{i \in \text{Selected}} \text{Budget}_i}$$
 
-> **Key Finding:** Pre-release signals alone struggle to surpass the naive accuracy baseline due to high creative variance. However, a regularized pre-release model acts as an intelligent capital filter: by rejecting 40 high-probability flops, it boosts simulated fund ROI from **+177.76% to +181.76%** on the holdout portfolio.
+> **Key Finding:** Pre-release signals alone struggle to surpass the naive accuracy baseline due to high creative variance. However, a regularized pre-release model acts as an intelligent capital filter: by rejecting 40 high-probability flops, it boosts simulated fund ROI from **+180.70% to +184.98%** on the holdout portfolio.
 
 ---
 

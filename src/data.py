@@ -45,3 +45,16 @@ def filter_clean_theatrical(df: pd.DataFrame, min_budget: float = 0.0, min_reven
     clean['target'] = (clean['revenue'] > clean['budget']).astype(int)
     clean['target_hollywood'] = (clean['revenue'] >= 2.0 * clean['budget']).astype(int)
     return clean
+
+def filter_scale_anomalies(df: pd.DataFrame, usd_floor: float = 10_000) -> pd.DataFrame:
+    """
+    Second-stage sanity filter: enforces a minimal commercial scale by pruning
+    currency-corrupted entries (e.g. budgets recorded without their million
+    multiplier: 'Rugrats in Paris' at $30, 'Modern Times' at $1).
+
+    Applies a STRICT '>' floor on both budget and revenue, so records sitting
+    exactly at the floor are pruned as well ('Eraserhead' at exactly $10,000
+    budget, 'Down Terrace' at exactly $10,000 revenue). On TMDB 5000 this
+    removes 26 titles, leaving the canonical modeling set of 3,203 films.
+    """
+    return df[(df['budget'] > usd_floor) & (df['revenue'] > usd_floor)].copy()
