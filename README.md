@@ -10,13 +10,15 @@ Pre-release commercial film success modeling, simulated portfolio ROI optimizati
 <p align="center">
   <a href="#quickstart"><strong>Quickstart</strong></a>
   &nbsp;·&nbsp;
+  <a href="#roadmap"><strong>Roadmap</strong></a>
+  &nbsp;·&nbsp;
   <a href="./docs/DATA_DICTIONARY.md"><strong>Data Schema</strong></a>
   &nbsp;·&nbsp;
   <a href="./docs/METHODOLOGY.md"><strong>Methodology</strong></a>
   &nbsp;·&nbsp;
   <a href="./docs/METRICS_AND_ROI.md"><strong>Financial ROI</strong></a>
   &nbsp;·&nbsp;
-  <a href="#benchmark-receipts"><strong>Receipts</strong></a>
+  <a href="#evaluation-framework"><strong>Baseline</strong></a>
   &nbsp;·&nbsp;
   <a href="#architecture"><strong>Pipeline</strong></a>
 </p>
@@ -24,9 +26,9 @@ Pre-release commercial film success modeling, simulated portfolio ROI optimizati
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-047857?style=flat-square" alt="Apache 2.0 license" /></a>
   <img src="https://img.shields.io/badge/python-3.10+-047857?style=flat-square" alt="Python 3.10+" />
-  <img src="https://img.shields.io/badge/data-TMDB_5000-047857?style=flat-square" alt="TMDB 5000 Dataset" />
-  <img src="https://img.shields.io/badge/models-LogisticRegression_%2B_RandomForest-047857?style=flat-square" alt="Models" />
-  <img src="https://img.shields.io/badge/portfolio_roi-%2B181.76%25-047857?style=flat-square" alt="Net Portfolio ROI" />
+  <img src="https://img.shields.io/badge/dataset-TMDB_5000-047857?style=flat-square" alt="TMDB 5000 Dataset" />
+  <img src="https://img.shields.io/badge/status-in_development-047857?style=flat-square" alt="Status: In Development" />
+  <img src="https://img.shields.io/badge/stage-architecture_%26_scaffolding-047857?style=flat-square" alt="Stage" />
 </p>
 
 ---
@@ -74,9 +76,21 @@ Most published film prediction papers claim ~80% accuracy. Almost all of them ar
 
 ---
 
-## 📊 Benchmark Receipts
+## 🗺️ Project Roadmap & Current Status
 
-Evaluated on a strictly isolated 80/20 stratified holdout split (646 unseen titles, random seed 42):
+* [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** *(Current)* — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
+* [ ] **Phase 2: Exploratory Data Analysis & Schema Audits** — Systematic distribution modeling, outlier pruning (26 scale anomalies), and correlation heatmaps ([`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb)).
+* [ ] **Phase 3: Regularized Linear Baseline Modeling** — Logistic Regression with cross-validated penalty sweeps ($C$, solvers) vs. Naive Majority baseline ([`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb)).
+* [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
+* [ ] **Phase 5: Leakage Auditing & Portfolio Simulation** — Controlled post-release leakage experiments, Hollywood 2.0x break-even evaluation, and simulated net portfolio ROI allocator ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
+
+---
+
+## 📊 Evaluation Framework & Baseline Simulation
+
+> ℹ️ **Scaffolding Baseline Note:** The metrics below represent the preliminary proof-of-concept simulation generated during project setup (`scripts/benchmark.py`) to validate pipeline interfaces, test holdout splits, and establish reference targets. Model training, hyperparameter sweeps, and ablation studies are actively conducted in the respective notebooks.
+
+Evaluated on an 80/20 stratified holdout split (646 unseen titles, random seed 42):
 
 | Model / Strategy | Information Scope | Accuracy | Precision | Recall | F1 Score | ROC-AUC | Net Portfolio ROI | Titles Picked |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -92,7 +106,7 @@ Accuracy measures classification; **Net Portfolio ROI** measures whether you kee
 
 $$\text{Net Portfolio ROI} = \frac{\sum_{i \in \text{Selected}} (\text{Revenue}_i - \text{Budget}_i)}{\sum_{i \in \text{Selected}} \text{Budget}_i}$$
 
-> **Receipt Summary:** Pre-release metadata cannot magically eliminate creative risk—creative reception has high residual variance. However, a regularized pre-release model acts as an intelligent capital filter: by rejecting 40 high-probability flops, it boosts simulated fund ROI from **+177.76% to +181.76%** on the holdout portfolio.
+> **Key Finding:** Pre-release signals alone struggle to surpass the naive accuracy baseline due to high creative variance. However, a regularized pre-release model acts as an intelligent capital filter: by rejecting 40 high-probability flops, it boosts simulated fund ROI from **+177.76% to +181.76%** on the holdout portfolio.
 
 ---
 
