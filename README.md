@@ -10,15 +10,15 @@ Pre-release commercial film success modeling, simulated portfolio ROI optimizati
 <p align="center">
   <a href="#quickstart"><strong>Quickstart</strong></a>
   &nbsp;·&nbsp;
-  <a href="#the-three-audits"><strong>The Three Audits</strong></a>
+  <a href="./docs/DATA_DICTIONARY.md"><strong>Data Schema</strong></a>
   &nbsp;·&nbsp;
-  <a href="#benchmark-receipts"><strong>Benchmark Receipts</strong></a>
+  <a href="./docs/METHODOLOGY.md"><strong>Methodology</strong></a>
   &nbsp;·&nbsp;
-  <a href="#architecture"><strong>Architecture</strong></a>
+  <a href="./docs/METRICS_AND_ROI.md"><strong>Financial ROI</strong></a>
   &nbsp;·&nbsp;
-  <a href="#dataset"><strong>Dataset</strong></a>
+  <a href="#benchmark-receipts"><strong>Receipts</strong></a>
   &nbsp;·&nbsp;
-  <a href="#license"><strong>License</strong></a>
+  <a href="#architecture"><strong>Pipeline</strong></a>
 </p>
 
 <p align="center">
@@ -148,13 +148,29 @@ The underlying data originates from [The Movie Database (TMDB)](https://www.them
 
 ```text
 greenlight-ml/
+├── docs/                      # Technical documentation & deep-dive audits
+│   ├── DATA_DICTIONARY.md     # 22 unique features, relational merge, unit scale audit
+│   ├── METHODOLOGY.md         # Survivorship bias, Hollywood 2.0x break-even, leakage isolation
+│   └── METRICS_AND_ROI.md     # Portfolio ROI formulation, capital efficiency & alpha
+├── notebooks/                 # Interactive Jupyter notebooks for research & reproduction
+│   ├── 01_exploratory_data_analysis.ipynb
+│   ├── 02_baseline_linear_model.ipynb
+│   ├── 03_advanced_ensemble_model.ipynb
+│   └── 04_leakage_audit_and_roi.ipynb
+├── src/                       # Production-grade modular Python package
+│   ├── data.py                # Data ingestion, schema validation & pruning
+│   ├── features.py            # Multimodal feature pipeline (TF-IDF, Multi-Hot, JSON parsing)
+│   ├── models.py              # Model factory & systematic GridSearchCV parameter spaces
+│   └── metrics.py             # Balanced accuracy, Macro F1, and Net Portfolio ROI
 ├── scripts/
-│   ├── download_data.py   # Kaggle dataset fetcher via kagglehub
-│   └── benchmark.py       # Reproducible benchmark runner & metrics printer
-├── .gitignore             # Strict privacy & cache ignore rules
-├── LICENSE                # Apache 2.0 open-source license
-├── README.md              # Project documentation & benchmark receipts
-└── requirements.txt       # Production dependencies (pandas, scikit-learn, etc.)
+│   ├── download_data.py       # Kaggle dataset fetcher via kagglehub
+│   └── benchmark.py           # Reproducible benchmark runner & metrics printer
+├── assets/
+│   └── banner.svg             # Dark-mode cinema aperture vector banner
+├── .gitignore                 # Strict data & private cache ignore rules
+├── LICENSE                    # Apache 2.0 open-source license
+├── README.md                  # Project overview & benchmark receipts
+└── requirements.txt           # Production dependencies
 ```
 
 ---
