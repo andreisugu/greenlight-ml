@@ -96,7 +96,7 @@ imbalanced.
 
 **Decision.** Both proxies are gross-to-budget labels, **not** studio net profit — the files omit exhibitor settlements,
 marketing/distribution, financing, and other recoupable costs. The boundary convention is reported explicitly (55.87%
-vs 56.02%) instead of being hidden behind a single figure. The final frost of one proxy as *the* target is a Stage-2
+vs 56.02%) instead of being hidden behind a single figure. The final freeze of one proxy as *the* target is a Stage-2
 (modeling) decision.
 
 ---
