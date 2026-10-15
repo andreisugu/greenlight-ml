@@ -1,60 +1,21 @@
-# 💰 Metrics & Financial Portfolio Modeling
+# Metrics and Financial Proxies — No Validated Model Receipts Yet
 
-This document details the dual evaluation framework of GreenlightML: statistical classification metrics and the **Simulated Net Portfolio ROI** financial decision engine.
+## Classification metrics
 
----
+The primary EDA population contains 3,229 rows with positive finite reported budget and revenue. On it, the nominal gross-to-budget label `revenue > budget` has prevalence 75.50%; the alternative `revenue >= 2 * budget` label has prevalence 56.02%.
 
-## 1. Classification Metrics (Statistical Evaluation)
+These are selected-sample label prevalences, not proof of studio profitability. Future model reports should include a majority-class baseline, balanced accuracy, per-class precision/recall, macro F1, ROC-AUC, confusion matrix, and the exact split/population.
 
-Due to the ~75.8% majority class imbalance, single-point accuracy is fundamentally misleading. GreenlightML evaluates models across a holistic metric battery:
+## Financial proxy (not ROI)
 
-* **Balanced Accuracy:** $\frac{1}{2} (\text{Sensitivity} + \text{Specificity}) = \frac{1}{2} (\text{TPR} + \text{TNR})$. Penalizes models that achieve high raw accuracy by ignoring the minority flop class.
-* **Precision ($\text{PPV}$):** $\frac{\text{TP}}{\text{TP} + \text{FP}}$. Measures the percentage of predicted "greenlit" titles that actually broke even.
-* **Recall ($\text{Sensitivity}$):** $\frac{\text{TP}}{\text{TP} + \text{FN}}$. Measures the fraction of true box office hits captured by the model.
-* **Macro F1 Score:** $\frac{\text{F1}_{\text{hit}} + \text{F1}_{\text{flop}}}{2}$. Provides unweighted average F1 across both classes, immediately revealing if a model is failing on the ~24.2% flop class.
-* **ROC-AUC:** Area under the Receiver Operating Characteristic curve. Measures ranking discrimination threshold-independently ($0.50$ = random chance, $1.00$ = perfect ranking).
-
----
-
-## 2. Simulated Net Portfolio ROI (Financial Evaluation)
-
-In financial entertainment analytics, classification accuracy does not answer a venture capitalist's or studio head's primary question: **"Does this model generate superior capital returns compared to indexing the theatrical market?"**
-
-### The Capital Allocation Metric
-For any classification decision threshold where titles with predicted probability $\hat{p}_i \ge \tau$ are selected ("greenlit"):
-
-$$\text{Net Portfolio ROI} = \frac{\sum_{i \in \text{Selected}} (\text{Revenue}_i - \text{Budget}_i)}{\sum_{i \in \text{Selected}} \text{Budget}_i}$$
-
-### Why Unweighted Mean ROI Fails
-Calculating the simple arithmetic mean of individual movie ROIs:
-$$\text{Mean ROI}_{\text{naive}} = \frac{1}{N} \sum_{i=1}^N \frac{\text{Revenue}_i - \text{Budget}_i}{\text{Budget}_i}$$
-is catastrophic on real film data because ultra-low-budget viral indies completely distort the mean:
-* *Tarnation* (2003): Budget \$218 $\rightarrow$ Revenue \$1.16M $\rightarrow$ Individual ROI: **+532,933%**. (Pruned from the canonical modeling set by the strict scale floor — see the [EDA audit](../notebooks/01_exploratory_data_analysis.ipynb).)
-* *Paranormal Activity* (2007): Budget \$15,000 $\rightarrow$ Revenue \$193.3M $\rightarrow$ Individual ROI: **+1,288,938%**.
-
-GreenlightML's **weighted portfolio aggregation** pools all capital and revenues at the fund level, accurately reflecting how an institutional film investment vehicle operates.
-
----
-
-## 3. Empirical Holdout Performance
-
-Across 641 unseen theatrical test titles:
+The current arithmetic
 
 ```text
-Total Test Theatrical Market Capital:    $26.56 Billion
-Total Test Theatrical Market Gross:      $74.57 Billion
-Passive Theatrical Market Net Profit:    $48.00 Billion
-Passive Market Index ROI:                +180.70% (Fund all 641 titles)
+(sum(revenue) - sum(budget)) / sum(budget)
 ```
 
-### Model-Driven Allocation Performance
+is named **Gross-to-Budget Surplus Proxy**. It is a gross box-office multiple less one, weighted by production budget. It is not net ROI or studio cash return: it does not account for exhibitor shares, Print & Advertising, distribution, financing, or other costs. The 2× label is likewise a rough target proxy, not an accounting result.
 
-| Strategy | Titles Picked | Capital Deployed | Capital Saved | Net Portfolio ROI | ROI Delta vs. Market |
-|---|:---:|:---:|:---:|:---:|:---:|
-| **Passive Market Index** | 641 | \$26.56B | \$0.00B | `+180.70%` | Baseline |
-| **Logistic Regression (Pre-release)** | **601** | **\$25.36B** | **\$1.21B** | **`+184.98%`** | **+4.28% Alpha** |
-| **Random Forest (Pre-release)** | 615 | \$25.71B | \$0.86B | `+181.72%` | +1.02% Alpha |
-| **Oracle (Perfect Foresight)** | 486 | \$21.33B | **\$5.23B** | `+235.62%` | +54.92% Upper Bound |
+## Status of historical benchmark values
 
-### Strategic Takeaway
-Even though creative variance limits pre-release accuracy to ~75%, **Logistic Regression successfully rejects 40 high-probability commercial flops**, preserving \$1.21 Billion in capital and lifting net fund returns by **+428 basis points (+184.98% vs +180.70%)**.
+Previously published benchmark receipts (including the 641-title holdout and ROI uplift claims) are withdrawn as validated evidence. They came from a pipeline that fit feature vocabularies/category choices before the train/test split, and they used a disputed >$10K population restriction. The leakage bug is now fixed (`FeatureEncoder` + split-before-fit), but the target/decision contract is not frozen. Recompute and publish receipts only after the target proxy, population, and metric terminology are settled.

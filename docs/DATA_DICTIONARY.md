@@ -6,7 +6,7 @@ This document outlines the relational schema, feature definitions, and data qual
 
 ## 1. Source & File Structure
 
-The dataset originates from [The Movie Database (TMDB)](https://www.themoviedb.org) aggregated metadata and comprises two core CSV files:
+The dataset originates from [The Movie Database (TMDB)](https://www.themoviedb.org) aggregated metadata and comprises two core CSV files. This is a later snapshot; a field's apparent pre-release meaning does not prove that its value was available at a historical prediction date. Treat temporal labels below as hypotheses until provenance is checked.
 
 * **`tmdb_5000_movies.csv`**: 4,803 rows × 20 columns. Contains financial, content, production, and reception attributes.
 * **`tmdb_5000_credits.csv`**: 4,803 rows × 4 columns. Contains JSON-encoded cast billing and production crew metadata.
@@ -26,10 +26,10 @@ While a simple sum of columns yields $20 + 4 = 24$, an inner join on `id = movie
 | `id` | Integer | Metadata | Unique TMDB film identifier. Used solely as the relational join key. | 0 |
 | `title` | String | Pre-release | International commercial release title. | 0 |
 | `original_title` | String | Pre-release | Original language title (differs from `title` in 5.43% of cases). | 0 |
-| `budget` | Integer | **Pre-release** | Stated production budget in USD. Zero indicates missing data. Log-scaled in pipeline. | 1,037 (zeros) |
-| `revenue` | Integer | **Post-release** | Worldwide theatrical gross box office in USD. Used to derive the target label. | 1,427 (zeros) |
-| `genres` | JSON String | **Pre-release** | List of genre dicts (`id`, `name`). Encoded via `MultiLabelBinarizer` (19 categories). | 28 empty lists |
-| `runtime` | Float | **Pre-release** | Film duration in minutes. Imputed with median (104.0 min) when missing. | 2 NaN, 35 zeros |
+| `budget` | Integer | **Pre-release** | Stated production budget in USD. Zero indicates missing data. Transform to be chosen empirically (log not assumed). | 1,037 (zeros) |
+| `revenue` | Integer | **Post-release** | Worldwide theatrical gross box office in USD. Used only to derive the target proxy (not a feature). | 1,427 (zeros) |
+| `genres` | JSON String | **Pre-release** | List of genre dicts (`id`, `name`). Multi-label encoded; encoder must be fit on training data only. | 28 empty lists |
+| `runtime` | Float | **Pre-release** | Film duration in minutes. Median imputation must be fit on training data only. | 2 NaN, 35 zeros |
 | `release_date` | Date String | **Pre-release** | Theatrical premiere date (`YYYY-MM-DD`, 1916–2016). Used for temporal features & split. | 1 NaN |
 | `original_language` | String | **Pre-release** | Primary dialogue language code (`en`, `fr`, `es`, etc.). | 0 |
 | `spoken_languages` | JSON String | **Pre-release** | List of languages spoken in the film. | 86 empty lists |
@@ -54,19 +54,10 @@ While a simple sum of columns yields $20 + 4 = 24$, an inner join on `id = movie
 * Unreported budgets: **1,037 films (21.59%)**
 * Unreported revenues: **1,427 films (29.71%)**
 * Logical OR (`budget == 0 | revenue == 0`): **1,574 films (32.77%)**
-* **Clean Theatrical Baseline:** **3,229 films** remain after pruning zero entries.
+* **Reported-financials population:** **3,229 rows** remain after excluding zero budget/revenue sentinels. This is not proof every row was theatrically released.
 
-### Currency Scaling & Corrupted Entries
-Within the 3,229 non-zero records, systematic screening reveals **26 anomalous records** where budgets were entered without million-scale multipliers or as placeholder integers:
+### $10K scale threshold: sensitivity only
 
-1. **Unscaled Hollywood Features:**
-   * *Rugrats in Paris: The Movie*: Budget entered as \$30, Revenue as \$103 (actual values: \$30M and \$103M).
-   * *The 51st State*: Budget entered as \$28, Revenue as \$14 (actual: \$28M and \$14M).
-   * *Angela's Ashes*: Budget entered as \$25, Revenue as \$13 (actual: \$25M and \$13M).
-   * *Nurse 3-D*: Budget entered as \$10, Revenue as \$10,000,000.
-2. **Symbolic Placeholder Entries:**
-   * Charlie Chaplin's *Modern Times* (1936): Budget entered as \$1, Revenue as \$8,500,000 (8,500,000:1 ratio).
-3. **Ultra-Low Indie Budget Outliers:**
-   * *Tarnation* (2003): Famous \$218 iMovie budget with \$1,162,014 gross (valid ratio: 5,330x).
+A strict `budget > $10,000 AND revenue > $10,000` restriction leaves 3,203 rows (26 fewer than the primary reported-financials population). It is not an anomaly detector: the removed rows include both revenue-above-budget and revenue-at/below-budget cases, and the CSV alone cannot establish that all their values are corrupt. Examples such as *Primer*, *Tarnation*, and *Eraserhead* require source-level verification before exclusion or correction. See the [EDA notebook](../notebooks/01_exploratory_data_analysis.ipynb) for the full list and label-sensitivity receipts.
 
-Applying a practical commercial threshold (`budget >= $10,000` and `revenue >= $10,000`) isolates **3,203 strictly valid theatrical titles**.
+Zero values are treated as unavailable financial reports in this analysis. They are not imputed to zero profit and are not automatically interpreted as commercial failures.

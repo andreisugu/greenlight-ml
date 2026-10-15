@@ -5,7 +5,7 @@
 <h1 align="center">greenlight-ml</h1>
 
 <p align="center"><em>To greenlight or to shelve.</em><br />
-Pre-release commercial film success modeling, simulated portfolio ROI optimization, and systematic audit of entertainment data leakage.</p>
+Pre-release film modeling research with explicit data-selection, feature-timing, and evaluation audits.</p>
 
 <p align="center">
   <a href="#quickstart"><strong>Quickstart</strong></a>
@@ -16,9 +16,9 @@ Pre-release commercial film success modeling, simulated portfolio ROI optimizati
   &nbsp;·&nbsp;
   <a href="./docs/METHODOLOGY.md"><strong>Methodology</strong></a>
   &nbsp;·&nbsp;
-  <a href="./docs/METRICS_AND_ROI.md"><strong>Financial ROI</strong></a>
+  <a href="./docs/METRICS_AND_ROI.md"><strong>Financial Proxy</strong></a>
   &nbsp;·&nbsp;
-  <a href="#evaluation-framework"><strong>Baseline</strong></a>
+  <a href="#evaluation-status"><strong>Evaluation</strong></a>
   &nbsp;·&nbsp;
   <a href="#architecture"><strong>Pipeline</strong></a>
 </p>
@@ -35,7 +35,7 @@ Pre-release commercial film success modeling, simulated portfolio ROI optimizati
 
 In theatrical distribution, **"greenlighting"**—the studio executive commitment to finance and market a feature film—is among the highest-variance capital allocation decisions in business. As legendary screenwriter William Goldman observed: *"Nobody knows anything."* Multi-hundred-million-dollar commitments are routinely made on historical pedigree, star packaging, and subjective instinct.
 
-**greenlight-ml** is an applied machine learning and natural language processing engine designed to model theatrical commercial viability **strictly prior to release**. Rather than reporting hollow accuracy scores on dirty data, greenlight-ml treats entertainment analytics with radical methodological rigor: measuring capital allocation efficiency (simulated portfolio ROI), dismantling survivorship bias, and auditing the silent data leaks that invalidate academic film modeling.
+**greenlight-ml** is a research project exploring pre-release film outcome modeling. The current work is focused on defining the reported-financials population, auditing feature timing, and establishing a defensible evaluation protocol before making performance or investment claims.
 
 ---
 
@@ -52,65 +52,57 @@ uv venv && source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
-### 2. Fetch TMDB 5000 & Run the Verified Benchmark
+### 2. Fetch the data and run the EDA
 
 ```bash
-# Downloads and extracts tmdb_5000_movies.csv and tmdb_5000_credits.csv
+# Downloads the two CSV files into the git-ignored data/ directory
 python scripts/download_data.py
 
-# Runs the complete pre-release pipeline vs leakage benchmark
-python scripts/benchmark.py
+# Open the audited EDA notebook
+jupyter lab notebooks/01_exploratory_data_analysis.ipynb
+```
+
+The model benchmark is currently a development scaffold, not a validated result; see [methodology](./docs/METHODOLOGY.md).
+
+### 3. Verify the data contracts
+
+```bash
+python -m unittest discover -s tests -v
 ```
 
 ---
 
 ## 🔬 The Three Audits
 
-Most published film prediction papers claim ~80% accuracy. Almost all of them are structurally invalid. Here is why:
+This project investigates three risks that can make film-prediction results misleading. The figures below describe the local TMDB sample; they are not universal claims about published research:
 
 | | The Assumption | What the Data Actually Proves |
 |---|---|---|
-| **1. The Survivorship Trap**<br />*Selection bias in public datasets* | *"80% accuracy means our model is strong."* | In TMDB 5000, 1,574 films (32.8%) lack budget or revenue and get pruned. The remaining 3,229 commercially reported films are overwhelmingly hits: **75.50% grossed more than their nominal budget**. A dumb baseline predicting "Success" for every film gets **75.50% Accuracy** and **0.86 F1** out of the box. Any pre-release model scoring 75% is barely matching a coin toss weighted to the house. |
-| **2. The Hollywood Multiplier**<br />*Nominal profit vs studio break-even* | *"If $Revenue > Budget$, the film was profitable."* | Box office gross is split ~50/50 with cinema exhibitors, and production budgets omit global Print & Advertising (P&A), which frequently matches the production budget. Industry consensus places real profitability at:$$\text{Gross Revenue} \ge 2.0 \times \text{Production Budget}$$At $2.0\times$, the class distribution rebalances naturally to **56.20% success vs. 43.80% loss** (canonical modeling set), exposing genuine model discrimination. |
-| **3. The Silent Data Leak**<br />*Post-release contamination* | *"Popularity and user votes are just features."* | TMDB `popularity`, `vote_average`, and `vote_count` are recalculated daily **post-release** based on current user searches, watchlist additions, and retrospective ratings. `popularity` alone has a **0.60 correlation** with revenue. Allowing post-release signals inflates ROC-AUC from ~0.60 to ~0.83—creating an illusion of predictive power useless for greenlighting. |
+| **1. Financial-reporting selection** | *"The rows with unknown financials are failures."* | In this dump, **1,574 / 4,803** rows have a zero budget or revenue; those values do not reveal why they are absent. Among the **3,229** rows with positive reported finances, **2,438 (75.50%)** have revenue greater than production budget. This is a selected-sample class prevalence, not an industry-wide success rate. |
+| **2. Gross multiple is not net profit** | *"Revenue > budget means the studio made money."* | The files contain gross revenue and production budget, not exhibitor settlements or marketing/distribution costs. The descriptive label `revenue >= 2 × budget` occurs for **1,809 / 3,229 (56.02%)** reported-financial rows. It is a rough alternative proxy, not verified profitability. |
+| **3. Feature-time leakage** | *"A column in the CSV was available before release."* | The file is a later metadata snapshot. Reception fields such as `popularity`, `vote_average`, and `vote_count` are leakage candidates for a pre-release decision. Their correlations do not prove the timestamp; a leakage experiment and its scores are **not yet validated**. |
 
 ---
 
 ## 🗺️ Project Roadmap & Current Status
 
 * [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
-* [x] **Phase 2: Exploratory Data Analysis & Schema Audits** *(Current)* — Systematic distribution modeling, outlier pruning (26 scale anomalies), and correlation heatmaps ([`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb)).
+* [ ] **Phase 2: Exploratory Data Analysis & Schema Audits** *(Under review)* — Primary population is 3,229 rows with positive finite reported finances. The >$10K rule is sensitivity-only, not an anomaly label. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb).
 * [ ] **Phase 3: Regularized Linear Baseline Modeling** — Logistic Regression with cross-validated penalty sweeps ($C$, solvers) vs. Naive Majority baseline ([`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb)).
 * [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
-* [ ] **Phase 5: Leakage Auditing & Portfolio Simulation** — Controlled post-release leakage experiments, Hollywood 2.0x break-even evaluation, and simulated net portfolio ROI allocator ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
+* [ ] **Phase 5: Leakage & Financial Proxy Analysis** — Controlled post-release leakage experiment and explicitly limited gross-to-budget proxy analysis ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
 
 ---
 
-## 📊 Evaluation Framework & Baseline Simulation
+## 📊 Evaluation Status
 
-> ℹ️ **Scaffolding Baseline Note:** The metrics below represent the preliminary proof-of-concept simulation generated during project setup (`scripts/benchmark.py`) to validate pipeline interfaces, test holdout splits, and establish reference targets. All receipts run on the **canonical 3,203-title modeling set** (post scale-anomaly prune, see the [EDA notebook](./notebooks/01_exploratory_data_analysis.ipynb)). Model training, hyperparameter sweeps, and ablation studies are actively conducted in the respective notebooks.
+> **No validated model-performance or portfolio results are published yet.** Receipts are withheld pending a frozen target/decision contract. The earlier benchmark fit TF-IDF/category representations before the split and used a disputed >$10K population restriction; that preprocessing bug is now fixed (`src/features.py` `FeatureEncoder` + split-before-fit in `scripts/benchmark.py`), but the target proxy and population are still not frozen. Do not cite any score as generalization evidence.
 
-Evaluated on an 80/20 stratified holdout split (641 unseen titles, random seed 42):
-
-| Model / Strategy | Information Scope | Accuracy | Precision | Recall | F1 Score | ROC-AUC | Net Portfolio ROI | Titles Picked |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Market Index Benchmark** | *Passive (Fund all)* | 0.7582 | 0.7582 | **1.0000** | 0.8625 | 0.5000 | +180.70% | 641 / 641 |
-| **Logistic Regression** | **Pre-release only** | 0.7457 | **0.7687** | 0.9506 | 0.8500 | **0.6206** | **+184.98%** | 601 / 641 |
-| **Random Forest (100 est.)** | **Pre-release only** | 0.7457 | 0.7626 | 0.9650 | 0.8520 | 0.5992 | +181.72% | 615 / 641 |
-| **Logistic Regression (LEAKED)** | *Post-release ⚠️* | 0.7863 | 0.8497 | 0.8724 | 0.8609 | 0.8114 | +212.98% | 499 / 641 |
-| **Random Forest (LEAKED)** | *Post-release ⚠️* | **0.8066** | 0.8415 | 0.9177 | **0.8780** | **0.8250** | +207.31% | 530 / 641 |
-
-### Financial Evaluation Metric
-
-Accuracy measures classification; **Net Portfolio ROI** measures whether you keep your fund:
-
-$$\text{Net Portfolio ROI} = \frac{\sum_{i \in \text{Selected}} (\text{Revenue}_i - \text{Budget}_i)}{\sum_{i \in \text{Selected}} \text{Budget}_i}$$
-
-> **Key Finding:** Pre-release signals alone struggle to surpass the naive accuracy baseline due to high creative variance. However, a regularized pre-release model acts as an intelligent capital filter: by rejecting 40 high-probability flops, it boosts simulated fund ROI from **+180.70% to +184.98%** on the holdout portfolio.
+The first modeling stage must establish a transparent baseline on the same locked split as subsequent models. Metrics will be published only after the target limit is fixed and preprocessing is confirmed to be fitted within training folds only. The current model notebooks remain drafts.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Planned Architecture (Not Yet Validated)
 
 ```mermaid
 flowchart TD
@@ -118,16 +110,15 @@ flowchart TD
         A1[tmdb_5000_movies.csv<br/>4,803 rows · 20 cols] 
         A2[tmdb_5000_credits.csv<br/>4,803 rows · 4 cols]
         A1 & A2 -->|Merge on id = movie_id| B[22 Unique Features<br/>Deduplicated keys & titles]
-        B --> C[Data Cleanse: Drop 0-budget & 0-revenue<br/>3,229 Reported Theatrical Films]
-        C --> C2[Scale-Anomaly Floor: strict > $10K<br/>3,203 Canonical Modeling Set]
+        B --> C[Analysis population: positive finite reported budget & revenue<br/>3,229 rows; selection-limited]
     end
 
     subgraph Feature Engineering
-        C2 --> D1["Log Budget: log1p(budget)"]
-        C2 --> D2[Multi-Hot Binarized Genres]
-        C2 --> D3[Top 30 Director & Lead Cast Frequency]
-        C2 --> D4[Temporal Seasonality: Month & Year]
-        C2 --> D5[Synopsis TF-IDF Embeddings: 100 n-grams]
+        C --> D1["Budget transform: evaluate empirically"]
+        C --> D2[Multi-Hot Binarized Genres]
+        C --> D3[Director / cast features: validate availability]
+        C --> D4[Release date features]
+        C --> D5[Synopsis TF-IDF: fit on training data only]
     end
 
     subgraph Modeling & Audit
@@ -141,8 +132,8 @@ flowchart TD
 
     subgraph Financial Decision Engine
         F1 & F2 --> G[Probability Calibration & Decision Gate]
-        G --> H["Portfolio Allocator<br/>Filter Flops · Allocate Budget"]
-        H --> I["Simulated Net ROI Output<br/>vs. Passive Theatrical Index"]
+        G --> H["Decision analysis<br/>assumptions to be defined"]
+        H --> I["Gross-to-budget proxy<br/>not net studio ROI"]
     end
 ```
 
@@ -152,10 +143,11 @@ flowchart TD
 
 The underlying data originates from [The Movie Database (TMDB)](https://www.themoviedb.org) via Kaggle. Merging `movies` and `credits` on `id = movie_id` yields **22 unique features** (not 24, as `movie_id` and `title` are redundant duplicates):
 
-* **Financial Target:** `revenue` (Worldwide gross box office).
-* **Pre-release Inputs:** `budget`, `genres` (JSON), `runtime`, `release_date`, `original_language`, `production_countries`, `production_companies`, `cast` (lead billing), `crew` (director extraction), `overview` (synopsis text).
-* **Post-release Leaks (Isolated):** `popularity` (daily traffic/watchlist index), `vote_average` (0–10 score), `vote_count` (review volume).
-* **Sanity Pruning:** Detects unit scale corruptions (e.g., Hollywood features entered with unscaled budgets like \$30 or \$10 instead of \$30M, and Charlie Chaplin's *Modern Times* entered with \$1 budget). A strict **> $10K** floor prunes 26 corrupted titles, leaving the **canonical modeling set** (see the [EDA audit](./notebooks/01_exploratory_data_analysis.ipynb)).
+* **Target proxies:** `revenue > budget` and `revenue >= 2 * budget`; neither is verified studio net profit.
+* **Primary EDA population:** 3,229 rows with positive finite budget and revenue. This is conditional on financial reporting, not the full universe of films.
+* **Pre-release candidates:** budget, genres, runtime, release date, language, credits and overview. Their historical availability at the intended prediction date still requires provenance checks.
+* **Leakage candidates:** `popularity`, `vote_average`, and `vote_count`; keep out of the pre-release model unless feature-time evidence proves otherwise.
+* **Scale sensitivity:** a strict >$10K floor removes 26 rows, including 16 nominal gross-at/below-budget rows and 10 above-budget. It is a population restriction, not evidence that all 26 records are corrupt.
 
 ---
 
@@ -164,27 +156,28 @@ The underlying data originates from [The Movie Database (TMDB)](https://www.them
 ```text
 greenlight-ml/
 ├── docs/                      # Technical documentation & deep-dive audits
-│   ├── DATA_DICTIONARY.md     # 22 unique features, relational merge, unit scale audit
-│   ├── METHODOLOGY.md         # Survivorship bias, Hollywood 2.0x break-even, leakage isolation
-│   └── METRICS_AND_ROI.md     # Portfolio ROI formulation, capital efficiency & alpha
+│   ├── DATA_DICTIONARY.md     # 22 unique features, relational merge, population & sensitivity audit
+│   ├── METHODOLOGY.md         # Population definition, selection limits, leakage-safe evaluation protocol
+│   └── METRICS_AND_ROI.md     # Metric definitions and financial-proxy limitations
 ├── notebooks/                 # Interactive Jupyter notebooks for research & reproduction
 │   ├── 01_exploratory_data_analysis.ipynb
 │   ├── 02_baseline_linear_model.ipynb
 │   ├── 03_advanced_ensemble_model.ipynb
 │   └── 04_leakage_audit_and_roi.ipynb
 ├── src/                       # Production-grade modular Python package
-│   ├── data.py                # Data ingestion, schema validation & pruning
-│   ├── features.py            # Multimodal feature pipeline (TF-IDF, Multi-Hot, JSON parsing)
-│   ├── models.py              # Model factory & systematic GridSearchCV parameter spaces
-│   └── metrics.py             # Balanced accuracy, Macro F1, and Net Portfolio ROI
+│   ├── data.py                # File validation, relational merge & population definitions
+│   ├── features.py            # Feature pipeline (TF-IDF, multi-hot, JSON parsing) — train-fit only
+│   ├── models.py              # Model factory & GridSearchCV parameter spaces
+│   └── metrics.py             # Classification metrics and gross-to-budget proxy
 ├── scripts/
 │   ├── download_data.py       # Kaggle dataset fetcher via kagglehub
-│   └── benchmark.py           # Reproducible benchmark runner & metrics printer
+│   └── benchmark.py           # Experimental scaffold (not valid evidence yet)
+├── tests/                     # Data-contract & metric unit tests
 ├── assets/
 │   └── banner.svg             # Dark-mode cinema aperture vector banner
 ├── .gitignore                 # Strict data & private cache ignore rules
 ├── LICENSE                    # Apache 2.0 open-source license
-├── README.md                  # Project overview & benchmark receipts
+├── README.md                  # Project overview & current evidence status
 └── requirements.txt           # Production dependencies
 ```
 

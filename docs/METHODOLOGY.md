@@ -1,81 +1,52 @@
-# 🔬 Methodology & Empirical Modeling
+# Methodology and Current Evidence Status
 
-This document formalizes the analytical framework, experimental setup, and risk auditing protocols powering GreenlightML.
+This document records the data population and methodological gates for GreenlightML. It separates what the CSV files show from assumptions about commercial outcomes.
 
----
+## 1. Prediction contract (still to be finalized)
 
-## 1. The Pre-Release Mandate
+The intended decision is pre-release film assessment. The dataset contains a later TMDB snapshot, so each candidate predictor needs evidence that it existed at the decision date. A CSV column being present does not establish historical availability.
 
-The fundamental business objective of film risk modeling is to support **greenlighting**—the executive decision to commit millions of dollars into production, talent contracts, and marketing. 
+Two labels are currently defined as **gross-to-budget proxies**:
 
-To be operationally useful, **all predictive signals must be knowable strictly prior to theatrical premiere**. Models trained on post-release attributes (audience ratings, post-release buzz) offer zero decision utility to a studio executive deciding whether to fund a screenplay 18–24 months before release.
+- Nominal proxy: `revenue > budget`.
+- Alternative 2× proxy: `revenue >= 2 * budget`.
 
----
+Neither is verified studio net profitability. The data does not include exhibitor settlements, marketing/distribution costs, financing, or all recoupable costs. The project must choose the primary proxy and report the other as sensitivity analysis.
 
-## 2. The Survivorship Trap & Class Imbalance
+## 2. Primary EDA population and selection limits
 
-Public film datasets inherently suffer from severe **survivorship bias**:
-* Major studio films with extensive theatrical rollouts reliably report global box office receipts.
-* Critical failures, direct-to-video releases, and unreleased indie productions frequently lack box office tracking and enter databases with `revenue == 0`.
+TMDB 5000 has 4,803 merged rows. The current dump contains 1,037 zero budgets and 1,427 zero revenues; 1,574 rows have at least one zero. We treat these zeros as *unreported financials* for this analysis, not as proof of failure or lack of theatrical release.
 
-When incomplete records (`revenue == 0 | budget == 0`) are filtered, the remaining 3,229 titles skew heavily toward commercial success:
-* **Nominal Success ($Revenue > Budget$):** **2,438 titles (75.50%)**
-* **Nominal Flop ($Revenue \le Budget$):** **791 titles (24.50%)**
+The primary descriptive/modeling candidate population is the **3,229 rows with positive finite budget and revenue**. On this selected population:
 
-A second sanity pass then prunes 26 currency-scale-corrupted entries via a strict commercial floor (`budget > $10,000 AND revenue > $10,000`, see the [EDA audit](../notebooks/01_exploratory_data_analysis.ipynb)), leaving the **canonical modeling set of 3,203 titles** (75.80% / 24.20%).
+- `revenue > budget`: 2,438 rows (75.50%).
+- `revenue >= 2 * budget`: 1,809 rows (56.02%).
 
-### The Metric Trap
-Under the ~75.8% / ~24.2% class distribution, a naive **Dummy Majority Classifier** predicting positive for 100% of cases achieves (641-title stratified holdout):
-* **Accuracy:** `75.82%`
-* **Precision (Class 1):** `75.82%`
-* **Recall (Class 1):** `100.00%`
-* **F1 Score (Class 1):** `0.8625`
-* **ROC-AUC:** `0.5000`
+These are conditional prevalences among records with reported financials. They should not be generalized to all films without addressing selection/missingness.
 
-> **Methodological Rule:** Any study reporting 75–78% raw accuracy or positive F1 on TMDB 5000 without reporting **Balanced Accuracy**, **Macro F1**, or **ROC-AUC** is demonstrating zero algorithmic lift beyond the majority class bias.
+### $10K threshold sensitivity
 
----
+A strict `budget > 10,000 AND revenue > 10,000` rule leaves 3,203 rows, but it is **not an anomaly detector**. It excludes 26 records: 16 with `revenue <= budget` and 10 with `revenue > budget`. The CSV values alone do not establish that every excluded row is corrupt; known microbudget examples appear in this set. The threshold may be reported as a sensitivity scenario, never silently substituted for the primary population.
 
-## 3. The Hollywood Break-Even Rule ($2.0\times$ Multiplier)
+## 3. Evaluation protocol before performance claims
 
-In entertainment economics, the simple condition $\text{Revenue} > \text{Budget}$ does **not** indicate a profitable theatrical investment:
+No model-performance receipt in the repository is currently accepted as validated evidence. The earlier benchmark is withdrawn: it fit TF-IDF vocabulary and category-frequency decisions before the train/test split, and it used the disputed >$10K population restriction. That preprocessing bug is now fixed—`src/features.py` exposes a train-fit `FeatureEncoder` and `scripts/benchmark.py` splits the raw rows before fitting—but the target proxy, population, and decision contract are not frozen, so no scores are published yet.
 
-1. **Exhibitor Box Office Split:** Gross box office represents total ticket sales. Cinema operators (exhibitors) retain ~50% of domestic gross (US/Canada), ~60% in Europe, and up to ~75% in China. The distributor/studio collects only the studio theatrical rental (~50% globally on average).
-2. **Print & Advertising (P&A):** Production budgets cover only the physical cost of making the film. Global marketing, TV ad buys, junkets, and digital campaigns (P&A) routinely match 50% to 100% of the production budget.
+Before reporting model performance:
 
-### The Real-World Break-Even Benchmark:
-$$\text{Worldwide Gross Revenue} \ge 2.0 \times \text{Production Budget}$$
+1. Define one target proxy, population, prediction date, and unit of observation.
+2. Choose a split that matches the claim (chronological for future-film generalization; grouped if related observations can cross splits).
+3. Fit imputers, scalers, vocabularies, category selection, feature selection, and tuning **inside training folds only**.
+4. Keep a final holdout untouched until model and threshold choices are frozen.
+5. Compare against a transparent baseline on the same split.
+6. Report prevalence, balanced metrics, uncertainty/variation, and error analysis—not raw accuracy alone.
 
-When evaluated against the $2.0\times$ multiplier (canonical 3,203-title set):
-* **True Commercial Success:** **1,800 titles (56.20%)**
-* **Theatrical Underperformance:** **1,403 titles (43.80%)**
+The current 02–04 notebooks are unexecuted scaffolds that already use the train-fit encoder, but they are still drafts. The historical README benchmark table is not model evidence.
 
-The class distribution naturally balances to an approximate 56% / 44% ratio, providing a realistic, commercially grounded classification target.
+## 4. Leakage and temporal provenance
 
----
+`popularity`, `vote_average`, and `vote_count` are leakage candidates for a pre-release decision because they reflect audience activity/ratings. The empirical correlations in the EDA are descriptive and are **not** the definition of leakage. Establish the timestamp/availability of each predictor relative to the forecast decision, then compare identical train/test protocols with and without post-release fields.
 
-## 4. Controlled Data Leakage Experiment
+## 5. Financial metric terminology
 
-A pervasive defect in academic film modeling is the accidental inclusion of post-release feedback loops:
-* `popularity`: TMDB's proprietary metric, recalculated daily based on current user page views, searches, and watchlist activity.
-* `vote_average` & `vote_count`: Aggregated audience reviews gathered after viewers have seen the film.
-
-### Quantitative Leakage Audit
-In an 80/20 stratified experiment on 641 unseen test titles, injecting these three features produces an artificial lift:
-
-| Model Architecture | Pre-Release Only (Clean) | Leaked (Post-Release) | Artificial Delta |
-|---|:---:|:---:|:---:|
-| **Logistic Regression ROC-AUC** | `0.6206` | `0.8114` | **+0.1908 (+30.8%)** |
-| **Random Forest ROC-AUC** | `0.5992` | `0.8250` | **+0.2258 (+37.7%)** |
-| **Logistic Regression Accuracy** | `74.57%` | `78.63%` | **+4.06pp** |
-| **Random Forest Accuracy** | `74.57%` | `80.66%` | **+6.08pp** |
-
-GreenlightML explicitly quarantines all post-release signals in production pipelines to ensure operational fidelity.
-
----
-
-## 5. Validation Protocols
-
-1. **Stratified 80/20 Holdout Split:** Preserves the ~75.8% / ~24.2% class balance of the canonical set in both training and test sets.
-2. **Cross-Validation on Train Only:** Stratified 5-Fold Cross-Validation is executed strictly on the 80% training slice during `GridSearchCV` hyperparameter tuning to prevent test set contamination.
-3. **Temporal Split (Optional / Rolling Window):** Splitting by `release_date` (e.g., training on $\le 2010$, testing on $2011–2016$) to audit against temporal leakage of director/actor fame.
+The repository's gross-minus-budget calculation is a **gross-to-budget surplus proxy**, not net portfolio ROI. It assumes all reported box-office gross is available to repay production budget and omits exhibitor shares and other costs. Any financial interpretation must state this limitation; do not claim realized studio returns.
