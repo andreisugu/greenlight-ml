@@ -13,17 +13,14 @@ import sys
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.data import load_and_merge_data, filter_reported_financials
+from src.data import load_and_merge_data, filter_reported_financials, split_population
 from src.features import FeatureEncoder
 from src.models import get_logistic_regression, get_random_forest
 from src.metrics import evaluate_model
-
-RANDOM_STATE = 42
 
 
 def run_benchmark():
@@ -35,13 +32,9 @@ def run_benchmark():
 
     df_reported = filter_reported_financials(df_raw)
 
-    # Split the raw rows FIRST so no preprocessing can observe the holdout.
-    train_df, test_df = train_test_split(
-        df_reported,
-        test_size=0.2,
-        random_state=RANDOM_STATE,
-        stratify=df_reported["target_nominal"],
-    )
+    # Split the raw rows FIRST so no preprocessing can observe the holdout. The
+    # split policy is named explicitly, not hardcoded, because it is not frozen.
+    train_df, test_df = split_population(df_reported, policy="random_stratified_provisional")
     y_tr = train_df["target_nominal"]
     y_te = test_df["target_nominal"]
 
