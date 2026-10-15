@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import numpy as np
 from typing import Tuple, Optional
+from sklearn.model_selection import train_test_split
+
 
 def get_default_data_paths() -> Tuple[str, str]:
     """Resolves default file paths for movies and credits CSVs."""
@@ -99,3 +101,40 @@ def filter_minimum_scale(df: pd.DataFrame, usd_floor: float = 10_000) -> pd.Data
         raise ValueError("usd_floor must be a finite, non-negative amount")
     valid = df["budget"].gt(usd_floor) & df["revenue"].gt(usd_floor)
     return df.loc[valid].copy()
+
+# The train/test split is a result-defining choice that is not frozen yet, so the
+# only policy implemented here is an explicitly named, still-provisional one.
+PROVISIONAL_SPLIT_POLICY = "random_stratified_provisional"
+
+def split_population(
+    df: pd.DataFrame,
+    policy: str,
+    *,
+    test_size: float = 0.2,
+    random_state: int = 42,
+    stratify_column: str = "target_nominal",
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Split the analysis population under an explicitly named policy.
+
+    The split is a *result-defining* choice and it is not frozen yet: a plain
+    random-stratified split mixes eras and can place the same recurring
+    director/actor on both sides (see ``docs/METHODOLOGY.md``). ``policy`` is a
+    required argument rather than a silent default, and only the provisional
+    policy exists, so a scaffold cannot quietly freeze a split by accident.
+    """
+    if policy != PROVISIONAL_SPLIT_POLICY:
+        raise ValueError(
+            f"unknown split policy {policy!r}; the only implemented (and still "
+            f"provisional) policy is {PROVISIONAL_SPLIT_POLICY!r}"
+        )
+    if stratify_column not in df.columns:
+        raise ValueError(
+            f"stratify column {stratify_column!r} not in frame; derive targets "
+            "with filter_reported_financials first"
+        )
+    return train_test_split(
+        df,
+        test_size=test_size,
+        random_state=random_state,
+        stratify=df[stratify_column],
+    )
