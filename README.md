@@ -70,9 +70,9 @@ Most published film prediction papers claim ~80% accuracy. Almost all of them ar
 
 | | The Assumption | What the Data Actually Proves |
 |---|---|---|
-| **1. The Survivorship Trap**<br />*Selection bias in public datasets* | *"80% accuracy means our model is strong."* | In TMDB 5000, 1,574 films (32.8%) lack budget or revenue and get pruned. The remaining 3,229 commercially reported films are overwhelmingly hits: **75.50% grossed more than their nominal budget**. A dumb baseline predicting "Success" for every film gets **75.54% Accuracy** and **0.86 F1** out of the box. Any pre-release model scoring 75% is barely matching a coin toss weighted to the house. |
-| **2. The Hollywood Multiplier**<br />*Nominal profit vs studio break-even* | *"If $Revenue > Budget$, the film was profitable."* | Box office gross is split ~50/50 with cinema exhibitors, and production budgets omit global Print & Advertising (P&A), which frequently matches the production budget. Industry consensus places real profitability at:$$\text{Gross Revenue} \ge 2.0 \times \text{Production Budget}$$At $2.0\times$, the class distribution rebalances naturally to **55.87% success vs. 44.13% loss**, exposing genuine model discrimination. |
-| **3. The Silent Data Leak**<br />*Post-release contamination* | *"Popularity and user votes are just features."* | TMDB `popularity`, `vote_average`, and `vote_count` are recalculated daily **post-release** based on current user searches, watchlist additions, and retrospective ratings. `popularity` alone has a **0.60 correlation** with revenue. Allowing post-release signals inflates ROC-AUC from 0.61 to 0.83—creating an illusion of predictive power useless for greenlighting. |
+| **1. The Survivorship Trap**<br />*Selection bias in public datasets* | *"80% accuracy means our model is strong."* | In TMDB 5000, 1,574 films (32.8%) lack budget or revenue and get pruned. The remaining 3,229 commercially reported films are overwhelmingly hits: **75.50% grossed more than their nominal budget**. A dumb baseline predicting "Success" for every film gets **75.50% Accuracy** and **0.86 F1** out of the box. Any pre-release model scoring 75% is barely matching a coin toss weighted to the house. |
+| **2. The Hollywood Multiplier**<br />*Nominal profit vs studio break-even* | *"If $Revenue > Budget$, the film was profitable."* | Box office gross is split ~50/50 with cinema exhibitors, and production budgets omit global Print & Advertising (P&A), which frequently matches the production budget. Industry consensus places real profitability at:$$\text{Gross Revenue} \ge 2.0 \times \text{Production Budget}$$At $2.0\times$, the class distribution rebalances naturally to **56.20% success vs. 43.80% loss** (canonical modeling set), exposing genuine model discrimination. |
+| **3. The Silent Data Leak**<br />*Post-release contamination* | *"Popularity and user votes are just features."* | TMDB `popularity`, `vote_average`, and `vote_count` are recalculated daily **post-release** based on current user searches, watchlist additions, and retrospective ratings. `popularity` alone has a **0.60 correlation** with revenue. Allowing post-release signals inflates ROC-AUC from ~0.60 to ~0.83—creating an illusion of predictive power useless for greenlighting. |
 
 ---
 
@@ -118,15 +118,16 @@ flowchart TD
         A1[tmdb_5000_movies.csv<br/>4,803 rows · 20 cols] 
         A2[tmdb_5000_credits.csv<br/>4,803 rows · 4 cols]
         A1 & A2 -->|Merge on id = movie_id| B[22 Unique Features<br/>Deduplicated keys & titles]
-        B --> C[Data Cleanse: Drop 0-budget & 0-revenue<br/>3,229 Valid Theatrical Records]
+        B --> C[Data Cleanse: Drop 0-budget & 0-revenue<br/>3,229 Reported Theatrical Films]
+        C --> C2[Scale-Anomaly Floor: strict > $10K<br/>3,203 Canonical Modeling Set]
     end
 
     subgraph Feature Engineering
-        C --> D1["Log Budget: log1p(budget)"]
-        C --> D2[Multi-Hot Binarized Genres]
-        C --> D3[Top 30 Director & Lead Cast Frequency]
-        C --> D4[Temporal Seasonality: Month & Year]
-        C --> D5[Synopsis TF-IDF Embeddings: 100 n-grams]
+        C2 --> D1["Log Budget: log1p(budget)"]
+        C2 --> D2[Multi-Hot Binarized Genres]
+        C2 --> D3[Top 30 Director & Lead Cast Frequency]
+        C2 --> D4[Temporal Seasonality: Month & Year]
+        C2 --> D5[Synopsis TF-IDF Embeddings: 100 n-grams]
     end
 
     subgraph Modeling & Audit
@@ -154,7 +155,7 @@ The underlying data originates from [The Movie Database (TMDB)](https://www.them
 * **Financial Target:** `revenue` (Worldwide gross box office).
 * **Pre-release Inputs:** `budget`, `genres` (JSON), `runtime`, `release_date`, `original_language`, `production_countries`, `production_companies`, `cast` (lead billing), `crew` (director extraction), `overview` (synopsis text).
 * **Post-release Leaks (Isolated):** `popularity` (daily traffic/watchlist index), `vote_average` (0–10 score), `vote_count` (review volume).
-* **Sanity Pruning:** Detects unit scale corruptions (e.g., Hollywood features entered with unscaled budgets like \$30 or \$10 instead of \$30M, and Charlie Chaplin's *Modern Times* entered with \$1 budget).
+* **Sanity Pruning:** Detects unit scale corruptions (e.g., Hollywood features entered with unscaled budgets like \$30 or \$10 instead of \$30M, and Charlie Chaplin's *Modern Times* entered with \$1 budget). A strict **> $10K** floor prunes 26 corrupted titles, leaving the **canonical modeling set** (see the [EDA audit](./notebooks/01_exploratory_data_analysis.ipynb)).
 
 ---
 
