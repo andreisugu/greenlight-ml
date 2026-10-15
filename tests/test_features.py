@@ -63,7 +63,7 @@ class FeatureEncoderLeakageTests(unittest.TestCase):
 
         self.assertEqual(X_test["runtime"].iloc[0], 110.0)   # train median of 100, 120
         self.assertEqual(X_test["release_year"].iloc[0], 2000.0)
-        self.assertEqual(X_test["release_month"].iloc[0], 6.0)
+        self.assertEqual(X_test["release_month"].iloc[0], 3.5)   # train median of 1, 6
 
     def test_tfidf_vocabulary_is_frozen_from_training(self):
         encoder = FeatureEncoder().fit(self.train)

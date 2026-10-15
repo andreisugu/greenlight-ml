@@ -97,6 +97,7 @@ class FeatureEncoder:
 
         release = pd.to_datetime(df["release_date"], errors="coerce")
         self.year_median_ = float(release.dt.year.median())
+        self.month_median_ = float(release.dt.month.median())
         self.runtime_median_ = float(pd.to_numeric(df["runtime"], errors="coerce").median())
 
         self.tfidf_ = TfidfVectorizer(max_features=self.max_tfidf_features,
@@ -111,9 +112,16 @@ class FeatureEncoder:
         index = df.index
         release = pd.to_datetime(df["release_date"], errors="coerce")
         release_year = release.dt.year.fillna(self.year_median_)
-        release_month = release.dt.month.fillna(6)
+        release_month = release.dt.month.fillna(self.month_median_)
 
-        genre_matrix = self.mlb_.transform(self._genre_lists(df))
+        # Restrict to the training vocabulary *before* encoding: test-only genres
+        # map to all-zero, exactly as MultiLabelBinarizer would, but without the
+        # "unknown class ignored" warning that would otherwise mask real warnings.
+        known_genres = set(self.mlb_.classes_)
+        genre_lists = self._genre_lists(df).apply(
+            lambda labels: [g for g in labels if g in known_genres]
+        )
+        genre_matrix = self.mlb_.transform(genre_lists)
         genres = pd.DataFrame(
             genre_matrix,
             columns=[f"genre_{g}" for g in self.mlb_.classes_],
