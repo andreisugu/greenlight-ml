@@ -28,6 +28,15 @@ These are conditional prevalences among records with reported financials. They s
 
 A strict `budget > 10,000 AND revenue > 10,000` rule leaves 3,203 rows, but it is **not an anomaly detector**. It excludes 26 records: 16 with `revenue <= budget` and 10 with `revenue > budget`. The CSV values alone do not establish that every excluded row is corrupt; known microbudget examples appear in this set. The threshold may be reported as a sensitivity scenario, never silently substituted for the primary population.
 
+### Temporal regime and entity structure
+
+The EDA shows the label is **not stationary**: the `revenue > budget` rate runs from **91.6% before 1980** to **74.1%
+from 2000 onward**, while the median reported budget grows from **$0.4M to $30M**. It also shows the rows are **not
+independent**: 628 directors and 1,425 lead actors recur across retained titles. Consequently, step 2 of the protocol
+below is not optional — prefer chronological validation for a future-film claim and grouped validation when related
+observations could cross the split. A plain random split would mix eras and could leak the same entity into train and
+test. All figures: [`docs/EDA_REPORT.md`](./EDA_REPORT.md).
+
 ## 3. Evaluation protocol before performance claims
 
 No model-performance receipt in the repository is currently accepted as validated evidence. The earlier benchmark is withdrawn: it fit TF-IDF vocabulary and category-frequency decisions before the train/test split, and it used the disputed >$10K population restriction. That preprocessing bug is now fixed—`src/features.py` exposes a train-fit `FeatureEncoder` and `scripts/benchmark.py` splits the raw rows before fitting—but the target proxy, population, and decision contract are not frozen, so no scores are published yet.

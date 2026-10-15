@@ -56,8 +56,38 @@ While a simple sum of columns yields $20 + 4 = 24$, an inner join on `id = movie
 * Logical OR (`budget == 0 | revenue == 0`): **1,574 films (32.77%)**
 * **Reported-financials population:** **3,229 rows** remain after excluding zero budget/revenue sentinels. This is not proof every row was theatrically released.
 
+The exclusions are reconciled by channel, so there is no hidden loss:
+
+| Exclusion reason | Rows |
+|---|---:|
+| `budget = 0`, revenue reported | 147 |
+| `revenue = 0`, budget reported | 537 |
+| both `budget = 0` and `revenue = 0` | 890 |
+| missing / non-finite / negative financial value | 0 |
+| **Total excluded** | **1,574** |
+
+Budget and revenue contain only zeros — no NaN, non-finite, or negative values. Zeros are treated as *unreported* values,
+not as profit equal to zero.
+
 ### $10K scale threshold: sensitivity only
 
 A strict `budget > $10,000 AND revenue > $10,000` restriction leaves 3,203 rows (26 fewer than the primary reported-financials population). It is not an anomaly detector: the removed rows include both revenue-above-budget and revenue-at/below-budget cases, and the CSV alone cannot establish that all their values are corrupt. Examples such as *Primer*, *Tarnation*, and *Eraserhead* require source-level verification before exclusion or correction. See the [EDA notebook](../notebooks/01_exploratory_data_analysis.ipynb) for the full list and label-sensitivity receipts.
 
 Zero values are treated as unavailable financial reports in this analysis. They are not imputed to zero profit and are not automatically interpreted as commercial failures.
+
+### Category cardinality, repetition, and structure
+
+These findings constrain how categories and splits must be built; all are reproduced in the [EDA report](./EDA_REPORT.md).
+
+| Property | Finding |
+|---|---|
+| Genre labels | **19** labels, membership 5–1,441 (`Drama` 1,441, `Comedy` 1,110); two rare genres (`Documentary` 38, `Foreign` 5) |
+| Original languages | **27** codes; English covers **96.1%** of retained titles |
+| Director repetition | **1,445** distinct directors; **628** direct more than one retained title (2,412 titles); most prolific is Steven Spielberg (27) |
+| Lead-cast repetition | **1,425** actors appear in the top-3 billing of more than one title (7,445 slots) |
+| Numeric structure (PCA) | First two components retain **72.7%** of standardised `[log_budget, runtime, vote_average, log_vote_count]` variance; strong class overlap |
+| Temporal regime | Proxy rate **91.6%** before 1980 vs **74.1%** from 2000; median budget **$0.4M → $30M** |
+
+Rare categories must be handled by a **train-fitted vocabulary** (collapse to `Other`), and because people recur, a
+**group-aware split** is required when the claim depends on it. The label is **non-stationary**, so random splits mix
+eras.

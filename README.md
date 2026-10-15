@@ -18,6 +18,8 @@ Pre-release film modeling research with explicit data-selection, feature-timing,
   &nbsp;·&nbsp;
   <a href="./docs/METRICS_AND_ROI.md"><strong>Financial Proxy</strong></a>
   &nbsp;·&nbsp;
+  <a href="./docs/EDA_REPORT.md"><strong>EDA Report</strong></a>
+  &nbsp;·&nbsp;
   <a href="#evaluation-status"><strong>Evaluation</strong></a>
   &nbsp;·&nbsp;
   <a href="#architecture"><strong>Pipeline</strong></a>
@@ -82,12 +84,21 @@ This project investigates three risks that can make film-prediction results misl
 | **2. Gross multiple is not net profit** | *"Revenue > budget means the studio made money."* | The files contain gross revenue and production budget, not exhibitor settlements or marketing/distribution costs. The descriptive label `revenue >= 2 × budget` occurs for **1,809 / 3,229 (56.02%)** reported-financial rows. It is a rough alternative proxy, not verified profitability. |
 | **3. Feature-time leakage** | *"A column in the CSV was available before release."* | The file is a later metadata snapshot. Reception fields such as `popularity`, `vote_average`, and `vote_count` are leakage candidates for a pre-release decision. Their correlations do not prove the timestamp; a leakage experiment and its scores are **not yet validated**. |
 
+### Stage-1 receipts beyond these three risks
+
+The executed EDA adds four findings that shape the modeling contract: **19 genre labels** and **27 languages**
+(English covers 96.1%) with two rare genres (`Documentary` 38, `Foreign` 5); **628 directors** and **1,425 lead actors**
+recur across retained titles, so the rows are *not* independent; the standardised numeric block collapses to **72.7%**
+variance on two principal components with heavy class overlap; and the proxy rate is **non-stationary** (**91.6%** before
+1980 vs **74.1%** from 2000) while the median reported budget grows from **$0.4M to $30M**. Every figure is reproduced in
+[`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md) and the [EDA notebook](./notebooks/01_exploratory_data_analysis.ipynb).
+
 ---
 
 ## 🗺️ Project Roadmap & Current Status
 
 * [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
-* [ ] **Phase 2: Exploratory Data Analysis & Schema Audits** *(Under review)* — Primary population is 3,229 rows with positive finite reported finances. The >$10K rule is sensitivity-only, not an anomaly label. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb).
+* [x] **Phase 2: Exploratory Data Analysis & Schema Audits** — Primary population is 3,229 rows with positive finite reported finances; the >$10K rule is sensitivity-only. A contract-tested merge, reconciled exclusions, distributions, category cardinality, entity repetition, PCA structure, and temporal-regime stability are all documented. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb) and [`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md).
 * [ ] **Phase 3: Regularized Linear Baseline Modeling** — Logistic Regression with cross-validated penalty sweeps ($C$, solvers) vs. Naive Majority baseline ([`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb)).
 * [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
 * [ ] **Phase 5: Leakage & Financial Proxy Analysis** — Controlled post-release leakage experiment and explicitly limited gross-to-budget proxy analysis ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
@@ -158,7 +169,8 @@ greenlight-ml/
 ├── docs/                      # Technical documentation & deep-dive audits
 │   ├── DATA_DICTIONARY.md     # 22 unique features, relational merge, population & sensitivity audit
 │   ├── METHODOLOGY.md         # Population definition, selection limits, leakage-safe evaluation protocol
-│   └── METRICS_AND_ROI.md     # Metric definitions and financial-proxy limitations
+│   ├── METRICS_AND_ROI.md     # Metric definitions and financial-proxy limitations
+│   └── EDA_REPORT.md          # Written Stage-1 EDA report: question → method → finding → decision
 ├── notebooks/                 # Interactive Jupyter notebooks for research & reproduction
 │   ├── 01_exploratory_data_analysis.ipynb
 │   ├── 02_baseline_linear_model.ipynb
