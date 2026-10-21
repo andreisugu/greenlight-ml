@@ -49,9 +49,13 @@ In theatrical distribution, **"greenlighting"**—the studio executive commitmen
 git clone git@github.com:andreisugu/greenlight-ml.git
 cd greenlight-ml
 
-# Setup environment with uv (instant) or pip
-uv venv && source .venv/bin/activate
+# Create and activate the project environment
+uv venv --python 3.12 .venv
+source .venv/bin/activate
 uv pip install -r requirements.txt
+
+# Register the environment as a Jupyter kernel
+python -m ipykernel install --user --name greenlight-ml --display-name "Greenlight ML (.venv)"
 ```
 
 ### 2. Fetch the data and run the EDA
@@ -60,8 +64,10 @@ uv pip install -r requirements.txt
 # Downloads the two CSV files into the git-ignored data/ directory
 python scripts/download_data.py
 
-# Open the audited EDA notebook
-jupyter lab notebooks/01_exploratory_data_analysis.ipynb
+# Open either EDA notebook (or both) in JupyterLab
+jupyter lab notebooks/01_exploratory_data_analysis.ipynb notebooks/01b_quick_exploratory_data_analysis.ipynb
+
+# In each notebook, select the "Greenlight ML (.venv)" kernel.
 ```
 
 The model benchmark is currently a development scaffold, not a validated result; see [methodology](./docs/METHODOLOGY.md).
