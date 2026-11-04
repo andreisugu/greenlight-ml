@@ -54,7 +54,7 @@ Before reporting model performance:
 5. Compare against a transparent baseline on the same split.
 6. Report prevalence, balanced metrics, uncertainty/variation, and error analysis—not raw accuracy alone.
 
-V1 satisfies steps 1–6 for the random-split claim. The 03–04 notebooks remain unexecuted scaffolds for V2 and the final audit.
+V1 satisfies steps 1–5 and reports prevalence, balanced metrics, and error analysis. Its variation is the 5-fold sweep, not a formal confidence interval. The 03–04 notebooks remain unexecuted scaffolds for V2 and the final audit.
 
 ## 4. Leakage and temporal provenance
 
