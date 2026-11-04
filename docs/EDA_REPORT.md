@@ -1,206 +1,117 @@
-# EDA Report — Data-Quality Audit and Analysis Population
+# EDA Report — TMDB 5000
 
 > Written companion to [`notebooks/01_exploratory_data_analysis.ipynb`](../notebooks/01_exploratory_data_analysis.ipynb).
-> Every number below is reproduced by an executed cell in that notebook; nothing here is asserted without a receipt.
+> Every number in §1–§4 is printed or plotted by that notebook.
 
-This report records the Stage-1 deliverable (`01`): the schema and data-quality audit, the definition of the analysis
-population, the target proxies, and the exploratory findings that constrain the later modeling stages. It is organized as
-*question → method → finding → decision* so each claim carries both a method and a consequence.
+## 1. Merge and missingness
 
----
+An inner join on `id = movie_id` gives **4,803 rows × 22 columns**. The credits file repeats the title, so the join keeps one
+copy instead of carrying `title_credits`.
 
-## 1. Reproduce it
+The file is unevenly populated:
+
+| Column | Missing |
+|---|---:|
+| `homepage` | 3,091 |
+| `tagline` | 844 |
+| `overview` | 3 |
+| `runtime` | 2 |
+| `release_date` | 1 |
+| everything else | 0 |
+
+The sparse fields are marketing text, not measurements. The columns the analysis needs — budget, revenue, genres, crew,
+language — are complete in this dump.
+
+## 2. The reported-financials subset
+
+A zero budget or revenue is treated as **unreported**, not as a value: the notebook keeps rows with `budget > 0` and
+`revenue > 0`, which leaves **3,229 of 4,803** titles. The filter does not say *why* a value is absent.
+
+| | budget (USD) | revenue (USD) | log1p(budget) | log1p(revenue) |
+|---|---:|---:|---:|---:|
+| count | 3,229 | 3,229 | 3,229 | 3,229 |
+| mean | 40.7M | 121.2M | 16.80 | 17.49 |
+| std | 44.4M | 186.3M | 1.66 | 2.08 |
+| min | 1 | 5 | 0.69 | 1.79 |
+| median | 25.0M | 55.2M | 17.03 | 17.83 |
+| max | 380.0M | 2,787.9M | 19.76 | 21.75 |
+
+Both columns span several orders of magnitude between median and maximum. `log1p` compresses that spread, which is why
+the plots use it.
+
+## 3. Relationships
+
+The scatterplot of `log1p(budget)` against `log1p(revenue)` shows a positive but noisy relationship. Correlations on the
+same subset:
+
+| Pair | r |
+|---|---:|
+| `log_budget` — `log_revenue` | 0.66 |
+| `log_revenue` — `popularity` | 0.42 |
+| `log_revenue` — `vote_average` | 0.15 |
+| `log_budget` — `vote_average` | −0.10 |
+
+Budget and revenue move together, but far from perfectly: budget alone leaves most of the variance unexplained, which is
+consistent with the weak signal the V1 baseline finds on this population.
+
+`popularity` and `vote_average` are **post-release** fields. Their correlation with revenue is descriptive; it is not
+evidence that they exist at a pre-release decision point, and they stay out of the V1 feature set.
+
+## 4. Genres and directors
+
+Genres are multi-label — one title can count under several — and the subset contains **19 labels**. The twelve most
+frequent are:
+
+| Genre | Titles |
+|---|---:|
+| Drama | 1,441 |
+| Comedy | 1,110 |
+| Thriller | 935 |
+| Action | 918 |
+| Adventure | 661 |
+| Romance | 574 |
+| Crime | 521 |
+| Science Fiction | 431 |
+| Family | 365 |
+| Fantasy | 342 |
+| Horror | 332 |
+| Mystery | 265 |
+
+The long tail matters for encoding: rare labels cannot support their own column on a 2,583-title training split, so the
+feature encoder collapses everything outside a fitted vocabulary into `Other`.
+
+Directors are extracted from the credits JSON. The subset has **1,445 distinct values**, one of which is an `Unknown`
+bucket with 2 rows. The most frequent:
+
+| Director | Titles |
+|---|---:|
+| Steven Spielberg | 27 |
+| Clint Eastwood | 19 |
+| Ridley Scott | 16 |
+| Martin Scorsese | 16 |
+| Robert Rodriguez | 16 |
+| Renny Harlin | 15 |
+| Tim Burton | 14 |
+| Steven Soderbergh | 14 |
+| Robert Zemeckis | 13 |
+| Oliver Stone | 13 |
+| Michael Bay | 12 |
+| Joel Schumacher | 12 |
+
+## 5. Limits
+
+- **Selection by reporting.** The 3,229 rows are conditional on reported finances. Excluded films may differ
+  systematically, so no rate computed here is an industry rate.
+- **Proxies, not profit.** Budget and revenue are gross figures without exhibitor splits, marketing, distribution, or
+  financing. `revenue > budget` is a gross-to-budget proxy, not studio profit.
+- **No temporal control.** The subset spans 1916–2016 and this pass does not split it by era; the relationships above are
+  pool-wide. Temporal drift is documented in [`DATA_DICTIONARY.md`](./DATA_DICTIONARY.md).
+- **Rows are not independent.** Directors and lead actors recur across titles, which is why a plain random split has to be
+  read as a holdout for this population only, not as evidence about future films.
+
+## Reproduce
 
 ```bash
-python scripts/download_data.py          # fetch the two CSVs into data/
-jupyter lab notebooks/01_exploratory_data_analysis.ipynb   # Restart & Run All
-python -m unittest discover -s tests -v  # data-contract, feature, and metric tests
+python -m unittest discover -s tests -v
+jupyter nbconvert --to notebook --execute --inplace notebooks/01_exploratory_data_analysis.ipynb
 ```
-
-The notebook is executed with a clean kernel and contains no pre-computed outputs that the code cannot regenerate.
-
----
-
-## 2. Relational and schema contract
-
-**Question.** Do the two source files join one-to-one into a unique, predictable schema?
-
-**Method.** Assert the key cardinalities, the cross-file title agreement, the merged shape, and the positional index; the
-same rules are exercised as unit tests in `tests/test_data.py`.
-
-**Finding.** `movies` is 4,803 × 20 and `credits` is 4,803 × 4. `movie_id` duplicates `id` and `title` is identical
-across the two files, so the merged schema is **4,803 rows × 22 unique columns** (not 24). The merge is validated
-`one_to_one`; any unmatched key or title mismatch raises instead of silently dropping rows.
-
-**Decision.** Treat the merge as a hard contract. A regression that breaks it fails loudly rather than quietly
-shrinking the dataset.
-
----
-
-## 3. Missingness, zeros, and the analysis population
-
-**Question.** How does the dump encode unavailable financial values, and what population can we analyze honestly?
-
-**Method.** Separate zeros, blanks, non-finite, and negative values per column; then reconcile the exclusions by channel.
-
-**Finding.** Budget and revenue contain **no** NaN, non-finite, or negative values — only zeros. Combined with the earlier
-columns, the exclusions reconcile exactly:
-
-| Reason | Rows |
-|---|---:|
-| `budget = 0`, revenue reported | 147 |
-| `revenue = 0`, budget reported | 537 |
-| `budget = 0` **and** `revenue = 0` | 890 |
-| missing / non-finite financial value | 0 |
-| negative financial value | 0 |
-| **Excluded (total)** | **1,574** |
-
-**4,803 raw − 1,574 excluded = 3,229 rows** with positive, finite reported budget and revenue. Among retained rows,
-3,228 are `Released` and 1 is `Post Production`.
-
-**Decision.** The *reported-financials population* is **3,229 rows**. A zero is treated as an unreported financial value,
-never as commercial failure and never imputed as profit. Selection-by-reporting is carried forward as an explicit
-limitation: excluded films may differ systematically in scale or outcome, and this file alone cannot say how.
-
----
-
-## 4. The >$10K threshold is a sensitivity scenario, not an anomaly detector
-
-**Question.** Does a strict `budget > $10K AND revenue > $10K` rule isolate corrupt data, or just redefine the sample?
-
-**Method.** Apply the threshold as a separate filter, list the removed rows, and report the label rate both ways.
-
-**Finding.** The rule keeps **3,203 rows** and removes **26** (10 nominal gross-above-budget, 16 gross-at/below-budget).
-The removed set mixes hand-verified microbudgets (*Primer*, $7,000; *Tarnation*, $218; *Eraserhead*, exactly $10,000)
-with genuinely suspicious values, so it cannot be labelled uniformly erroneous.
-
-**Decision.** The 3,229-row reported-financials population stays primary; the 3,203-row subset is reported **only** as a
-sensitivity scenario. It is never called a "clean" or "canonical" dataset.
-
----
-
-## 5. Target proxies
-
-**Question.** What label can we derive from the reported money, and how far is it from real profit?
-
-**Method.** Derive two gross-to-budget proxies and report the strict/`>=` boundary for each.
-
-| Receipt | Primary (3,229) | Sensitivity (3,203) |
-|---|---:|---:|
-| `revenue > budget` | 2,438 (75.50%) | 2,428 (75.80%) |
-| `revenue >= 2 × budget` | 1,809 (56.02%) | 1,800 (56.20%) |
-| `revenue > 2 × budget` (strict) | 1,804 (55.87%) | 1,796 (56.07%) |
-
-**Finding.** The majority-label baseline on the primary population is **75.50%**, so the nominal proxy is strongly
-imbalanced.
-
-**Decision.** Both proxies are gross-to-budget labels, **not** studio net profit — the files omit exhibitor settlements,
-marketing/distribution, financing, and other recoupable costs. The boundary convention is reported explicitly (55.87%
-vs 56.02%) instead of being hidden behind a single figure. The final freeze of one proxy as *the* target is a Stage-2
-(modeling) decision.
-
----
-
-## 6. Distributions, concentration, and transforms
-
-**Question.** How skewed are the money columns, and does a log transform actually help?
-
-**Method.** Compare raw and `log1p` skewness in both populations and measure revenue concentration.
-
-**Finding.**
-
-| Population | Budget skew (raw → log1p) | Revenue skew (raw → log1p) |
-|---|---:|---:|
-| Primary | 2.09 → **−3.11** | 3.82 → **−2.35** |
-| >$10K sensitivity | 2.08 → −1.10 | 3.81 → −1.13 |
-
-`log1p` removes the right skew but **overshoots into a heavy left tail** (small budgets near $1 become extreme negative
-outliers in log space). Revenue is highly concentrated: the top 5 titles are 2.34% of gross and the top 20% of titles are
-65.8% of gross. Runtime has a median of **104 min** (>0, raw) and **107 min** in the primary population, where its zeros
-and NaNs are already gone.
-
-**Decision.** `log1p(budget)` is a *candidate* transform to evaluate inside the train-fit encoder, not an assumed fix.
-Concentration means mean-based summaries are fragile, so medians are reported alongside means throughout.
-
----
-
-## 7. Category cardinality, repetition, and structure
-
-**Question.** Are categories balanced, and are the rows independent observations?
-
-**Finding — cardinality.** There are **19 genre labels** (membership 5–1,441; `Drama` 1,441, `Comedy` 1,110) with two
-rare genres (`Documentary` 38, `Foreign` 5) and 1 empty genre list among retained rows. There are **27 language codes**,
-with English covering **96.1%** of titles.
-
-**Finding — repetition.** The retained rows contain **1,445 distinct directors**; **628** direct more than one title
-(2,412 titles total), and **1,425 actors** appear in the top-3 billing of more than one title (7,445 title slots). The
-most prolific director is Steven Spielberg (27 titles).
-
-**Finding — structure (PCA).** On the standardised block `[log_budget, runtime, vote_average, log_vote_count]`, the first
-two components retain **72.7%** of variance (PC1 0.442, PC2 0.285), and the proxy classes overlap substantially — the
-task looks hard and noisy rather than cleanly separable. The block intentionally includes post-release fields to show
-*why* reception data separates the classes.
-
-**Decision.** Rare genres/languages must be handled by a **train-fitted vocabulary** (collapse to `Other`). Because
-directors and stars recur, a plain random split can put the same entity on both sides, so a **group-aware split** is
-required when the claim depends on it.
-
----
-
-## 8. Temporal coverage and regime stability
-
-**Question.** Is the target rate stable over time, or does it drift?
-
-**Finding.** Release years span **1916–2016**. The nominal proxy rate is **91.6% before 1980** versus **74.1% from
-2000 onward**, and the median reported budget rises from **$0.4M (1910s) to $30M (2010s)**. Monthly release counts peak
-in September (386 titles) while mean/median revenue peaks in June (202.71M / 112.27M).
-
-**Decision.** The label is **non-stationary**: it is both a different prevalence and a different dollar scale across
-eras. Random splits mix incompatible regimes, so time-aware validation is preferred and the model must never train on
-future years. Monthly seasonality is descriptive only — it is confounded by era and blockbuster composition.
-
----
-
-## 9. Associations and feature-time leakage
-
-**Question.** Which numeric fields track revenue — and which exist only after release?
-
-**Finding.** Pearson/Spearman correlation with revenue: `vote_count` 0.76/0.75, `budget` 0.71/0.68, `popularity`
-0.60/0.70, `runtime` 0.23/0.23, `vote_average` 0.19/0.13.
-
-**Decision.** Correlation is descriptive and is **not** the definition of leakage. `popularity`, `vote_average`, and
-`vote_count` are post-release reception signals and are treated as leakage **candidates** for a pre-release task; they
-stay out of the pre-release feature set and are revisited only as a controlled leakage experiment in Stage 5.
-
----
-
-## 10. Acceptance checklist
-
-| Criterion | Evidence | Verdict |
-|---|---|---|
-| Relational/schema contract, tested | Contract cell (7 PASS) + `tests/test_data.py` | **PASS** |
-| Missing vs zero vs impossible separated; counts reconciled | §3 removal log (147/537/890) | **PASS** |
-| Threshold presented as sensitivity, not anomaly label | §4 under-floor listing | **PASS** |
-| Targets named and bounded against profit | §5 receipts + `docs/METRICS_AND_ROI.md` | **PASS** |
-| EDA breadth: distributions, categories, relations, groups, time | §6–§9, 12 figures | **PASS** |
-| Every figure answers a written question | 13 `Question` prompts | **PASS** |
-| Decisions logged (observation → hypothesis → test → action) | Notebook §14 decision log | **PASS** |
-| Reproducibility | Clean kernel, executed notebook, 18 passing tests at audit time | **PASS** |
-| Handoff: single explicit population; no premature model claims | §5/§8; no scores published | **PASS** |
-
----
-
-## 11. Limits carried forward
-
-1. **Selection by reporting.** The 3,229-row population is conditional on reported finances; excluded films may differ
-   systematically.
-2. **Proxies, not profit.** Both targets are gross-to-budget labels that ignore marketing, distribution, and exhibitor
-   splits.
-3. **Non-stationary label.** The proxy rate and dollar scale drift across eras; validation must respect time.
-4. **Non-independent rows.** Directors and lead actors recur, so entity leakage across folds is possible.
-5. **Unresolved prediction date.** The intended pre-release decision date is not yet frozen; feature availability must be
-   proven per column before any receipt is read as pre-release generalization evidence. V1 therefore reports a
-   holdout result under an assumed prediction time, not a pre-release decision tool.
-
-Downstream plan: freeze a single target, population, and prediction date; then run the modeling notebooks on an identical
-locked split with train-only preprocessing (see [`docs/METHODOLOGY.md`](./METHODOLOGY.md)).

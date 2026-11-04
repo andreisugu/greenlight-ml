@@ -71,13 +71,13 @@ not as profit equal to zero.
 
 ### $10K scale threshold: sensitivity only
 
-A strict `budget > $10,000 AND revenue > $10,000` restriction leaves 3,203 rows (26 fewer than the primary reported-financials population). It is not an anomaly detector: the removed rows include both revenue-above-budget and revenue-at/below-budget cases, and the CSV alone cannot establish that all their values are corrupt. Examples such as *Primer*, *Tarnation*, and *Eraserhead* require source-level verification before exclusion or correction. See the [EDA notebook](../notebooks/01_exploratory_data_analysis.ipynb) for the full list and label-sensitivity receipts.
+A strict `budget > $10,000 AND revenue > $10,000` restriction leaves 3,203 rows (26 fewer than the primary reported-financials population). It is not an anomaly detector: the removed rows include both revenue-above-budget and revenue-at/below-budget cases, and the CSV alone cannot establish that all their values are corrupt. Examples such as *Primer*, *Tarnation*, and *Eraserhead* require source-level verification before exclusion or correction. The row-level selection and the label sensitivity are documented in [`METHODOLOGY.md`](./METHODOLOGY.md).
 
 Zero values are treated as unavailable financial reports in this analysis. They are not imputed to zero profit and are not automatically interpreted as commercial failures.
 
 ### Category cardinality, repetition, and structure
 
-These findings constrain how categories and splits must be built; all are reproduced in the [EDA report](./EDA_REPORT.md).
+These findings constrain how categories and splits must be built; all are computed from the merged CSV on the same 3,229-row subset.
 
 | Property | Finding |
 |---|---|

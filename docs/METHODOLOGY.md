@@ -36,12 +36,12 @@ A strict `budget > 10,000 AND revenue > 10,000` rule leaves 3,203 rows, but it i
 
 ### Temporal regime and entity structure
 
-The EDA shows the label is **not stationary**: the `revenue > budget` rate runs from **91.6% before 1980** to **74.1%
+The population shows the label is **not stationary**: the `revenue > budget` rate runs from **91.6% before 1980** to **74.1%
 from 2000 onward**, while the median reported budget grows from **$0.4M to $30M**. It also shows the rows are **not
 independent**: 628 directors and 1,425 lead actors recur across retained titles. V1 uses the random stratified split
 and therefore claims only this holdout, not future-film generalization. Chronological
 and grouped validation are explicit later-stage audits, not optional silent alternatives. All figures:
-[`docs/EDA_REPORT.md`](./EDA_REPORT.md).
+[`docs/DATA_DICTIONARY.md`](./DATA_DICTIONARY.md).
 
 ## 3. Evaluation protocol and V1 status
 

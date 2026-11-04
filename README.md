@@ -94,19 +94,18 @@ This project investigates three risks that can make film-prediction results misl
 
 ### Stage-1 receipts beyond these three risks
 
-The executed EDA adds four findings that shape the modeling contract: **19 genre labels** and **27 languages**
+The dataset also carries four findings that shape the modeling setup: **19 genre labels** and **27 languages**
 (English covers 96.1%) with two rare genres (`Documentary` 38, `Foreign` 5); **628 directors** and **1,425 lead actors**
 recur across retained titles, so the rows are *not* independent; the standardised numeric block collapses to **72.7%**
 variance on two principal components with heavy class overlap; and the proxy rate is **non-stationary** (**91.6%** before
-1980 vs **74.1%** from 2000) while the median reported budget grows from **$0.4M to $30M**. Every figure is reproduced in
-[`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md) and the [EDA notebook](./notebooks/01_exploratory_data_analysis.ipynb).
+1980 vs **74.1%** from 2000) while the median reported budget grows from **$0.4M to $30M**. All four are tabulated in [`docs/DATA_DICTIONARY.md`](./docs/DATA_DICTIONARY.md).
 
 ---
 
 ## 🗺️ Project Roadmap & Current Status
 
 * [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
-* [x] **Phase 2: Exploratory Data Analysis & Schema Audits** — Primary population is 3,229 rows with positive finite reported finances; the >$10K rule is sensitivity-only. A contract-tested merge, reconciled exclusions, distributions, category cardinality, entity repetition, PCA structure, and temporal-regime stability are all documented. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb) and [`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md).
+* [x] **Phase 2: Exploratory Data Analysis** — Primary population is 3,229 rows with positive finite reported finances; the >$10K rule is sensitivity-only. The EDA covers the merge and its missingness, that subset's financial distributions on a log scale, the correlational structure, and genre/director frequency. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb) and [`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md).
 * [x] **Phase 3: Regularized Linear Baseline Modeling** — Fixed V1 settings (3,229 reported-financials titles, 80/20 stratified split, seed 42), Dummy majority baseline vs L1/L2 Logistic Regression tuned over `C`, `penalty`, and `class_weight` with 5-fold CV. Holdout: ROC-AUC 0.604, PR-AUC 0.809; the 0.50 threshold stays at the majority baseline, while an OOF-tuned 0.74 threshold gives balanced accuracy 0.582. See [`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb) and [`docs/V1_REPORT.md`](./docs/V1_REPORT.md).
 * [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
 * [ ] **Phase 5: Leakage & Financial Proxy Analysis** — Controlled post-release leakage experiment and explicitly limited gross-to-budget proxy analysis ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
@@ -186,7 +185,6 @@ greenlight-ml/
 │   └── split_receipt.json     # V1 split receipt: counts, rates, test IDs, data hashes
 ├── notebooks/                 # Interactive Jupyter notebooks for research & reproduction
 │   ├── 01_exploratory_data_analysis.ipynb
-│   ├── 01b_quick_exploratory_data_analysis.ipynb
 │   ├── 02_baseline_linear_model.ipynb
 │   ├── 03_advanced_ensemble_model.ipynb
 │   └── 04_leakage_audit_and_roi.ipynb
