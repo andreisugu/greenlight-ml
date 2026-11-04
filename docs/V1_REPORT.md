@@ -2,7 +2,7 @@
 
 > Companion to [`notebooks/02_baseline_linear_model.ipynb`](../notebooks/02_baseline_linear_model.ipynb).
 > The split receipt is committed as [`artifacts/split_contract.json`](../artifacts/split_contract.json).
-> Every number below is produced by the executed notebook.
+> Every metric below is produced by the executed notebook.
 
 ## Contract v1.0
 

@@ -144,7 +144,7 @@ flowchart TD
 
     subgraph Modeling & Audit
         D1 & D2 & D3 & D4 & D5 --> E1["Clean Pre-Release Store<br/>(Strictly Pre-Premiere)"]
-        E1 --> F1[Model 1: L2 Logistic Regression]
+        E1 --> F1[Model 1: L1/L2 Logistic Regression]
         E1 --> F2[Model 2: Random Forest / XGBoost]
         
         C -.->|Deliberate Leakage Audit| E2["Contaminated Store<br/>(+ popularity, vote_count, vote_average)"]
