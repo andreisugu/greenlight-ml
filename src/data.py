@@ -106,9 +106,9 @@ def filter_minimum_scale(df: pd.DataFrame, usd_floor: float = 10_000) -> pd.Data
     valid = df["budget"].gt(usd_floor) & df["revenue"].gt(usd_floor)
     return df.loc[valid].copy()
 
-# V1 freezes a random stratified 80/20 split. Chronological and grouped
-# alternatives are explicit future audits, not silent defaults: a random split
-# mixes eras and can place the same recurring director/actor on both sides.
+# V1 uses a random stratified 80/20 split. Chronological and grouped alternatives
+# are explicit later audits, not silent defaults: a random split mixes eras and
+# can place the same recurring director/actor on both sides.
 FROZEN_SPLIT_POLICY = "random_stratified_v1"
 
 def split_population(
@@ -119,14 +119,13 @@ def split_population(
     random_state: int = 42,
     stratify_column: str = "target_nominal",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Split the analysis population under the frozen V1 policy.
+    """Split the analysis population under the V1 policy.
 
     The split is a *result-defining* choice. V1 uses a random 80/20 stratified
-    split with ``random_state=42`` because that is the course protocol. It mixes
-    eras and can place the same recurring director/actor on both sides (see
-    ``docs/METHODOLOGY.md``), so V1 claims describe this holdout only, not
-    future-film generalization. ``policy`` is required rather than defaulted so
-    no call site can change the split silently.
+    split with ``random_state=42``; it mixes eras and can place the same recurring
+    director/actor on both sides (see ``docs/METHODOLOGY.md``), so V1 claims
+    describe this holdout only, not future-film generalization. ``policy`` is
+    required rather than defaulted so no call site can change the split silently.
     """
     if policy != FROZEN_SPLIT_POLICY:
         raise ValueError(
@@ -146,7 +145,7 @@ def split_population(
     )
 
 
-def build_split_contract(
+def build_split_receipt(
     df: pd.DataFrame,
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
@@ -158,9 +157,8 @@ def build_split_contract(
     data_paths: Optional[Tuple[str, str]] = None,
     include_hashes: bool = True,
 ) -> dict:
-    """Return the frozen V1 split receipt: counts, rates, IDs, and file hashes."""
-    contract = {
-        "contract_version": "v1.0",
+    """Return the V1 split receipt: counts, rates, IDs, and file hashes."""
+    receipt = {
         "target_primary": "target_nominal",
         "target_definition": "revenue > budget",
         "target_sensitivity": "target_hollywood",
@@ -182,11 +180,11 @@ def build_split_contract(
         movies_path, credits_path = data_paths or get_default_data_paths()
         for path in (movies_path, credits_path):
             path = Path(path)
-            contract["data_sha256"][path.name] = sha256(path.read_bytes()).hexdigest()
-    return contract
+            receipt["data_sha256"][path.name] = sha256(path.read_bytes()).hexdigest()
+    return receipt
 
 
-def write_split_contract(
+def write_split_receipt(
     df: pd.DataFrame,
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
@@ -194,8 +192,8 @@ def write_split_contract(
     **kwargs,
 ) -> dict:
     """Write the V1 split receipt to ``path`` and return it."""
-    contract = build_split_contract(df, train_df, test_df, **kwargs)
+    receipt = build_split_receipt(df, train_df, test_df, **kwargs)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
-    return contract
+    path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    return receipt

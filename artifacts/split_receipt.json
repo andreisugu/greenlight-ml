@@ -1,5 +1,4 @@
 {
-  "contract_version": "v1.0",
   "target_primary": "target_nominal",
   "target_definition": "revenue > budget",
   "target_sensitivity": "target_hollywood",

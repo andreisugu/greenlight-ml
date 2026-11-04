@@ -6,7 +6,7 @@ import pandas as pd
 
 from src.data import (
     FROZEN_SPLIT_POLICY,
-    build_split_contract,
+    build_split_receipt,
     filter_minimum_scale,
     filter_reported_financials,
     load_and_merge_data,
@@ -118,7 +118,7 @@ class DataContractTests(unittest.TestCase):
                 load_and_merge_data(movies_path, credits_path)
 
 
-class SplitContractTests(unittest.TestCase):
+class SplitReceiptTests(unittest.TestCase):
     def setUp(self):
         self.frame = pd.DataFrame(
             {
@@ -141,19 +141,19 @@ class SplitContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown split policy"):
             split_population(self.frame, "chronological")
 
-    def test_split_contract_records_counts_and_test_ids(self):
+    def test_split_receipt_records_counts_and_test_ids(self):
         train, test = split_population(self.frame, FROZEN_SPLIT_POLICY)
 
-        contract = build_split_contract(
+        receipt = build_split_receipt(
             self.frame, train, test, include_hashes=False
         )
 
-        self.assertEqual(contract["population_rows"], 80)
-        self.assertEqual(contract["train_rows"], 64)
-        self.assertEqual(contract["test_rows"], 16)
-        self.assertEqual(contract["test_ids"], [int(value) for value in test["id"]])
-        self.assertEqual(contract["split_policy"], FROZEN_SPLIT_POLICY)
-        self.assertEqual(contract["data_sha256"], {})
+        self.assertEqual(receipt["population_rows"], 80)
+        self.assertEqual(receipt["train_rows"], 64)
+        self.assertEqual(receipt["test_rows"], 16)
+        self.assertEqual(receipt["test_ids"], [int(value) for value in test["id"]])
+        self.assertEqual(receipt["split_policy"], FROZEN_SPLIT_POLICY)
+        self.assertEqual(receipt["data_sha256"], {})
 
 
 if __name__ == "__main__":

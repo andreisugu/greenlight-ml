@@ -22,4 +22,4 @@ V1 does not publish a portfolio or ROI number. The gross-to-budget proxy is comp
 
 ## Status of historical benchmark values
 
-Previously published benchmark receipts (including the 641-title holdout and ROI uplift claims) are withdrawn as validated evidence. They came from a pipeline that fit feature vocabularies/category choices before the train/test split, and they used a disputed >$10K population restriction. The leakage bug is fixed (`FeatureEncoder` + split-before-fit), and V1 now has a frozen contract and a published receipt. The remaining 03–04 notebooks are still drafts.
+Previously published benchmark receipts (including the 641-title holdout and ROI uplift claims) are withdrawn as validated evidence. They came from a pipeline that fit feature vocabularies/category choices before the train/test split, and they used a disputed >$10K population restriction. The leakage bug is fixed (`FeatureEncoder` + split-before-fit), and V1 now fixes its settings and publishes a receipt. The remaining 03–04 notebooks are still drafts.

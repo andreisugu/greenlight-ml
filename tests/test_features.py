@@ -155,6 +155,9 @@ class FeatureEncoderV1Tests(unittest.TestCase):
         fitted_encoder = grid.best_estimator_.named_steps["features"]
         self.assertTrue(hasattr(grid.best_estimator_, "predict_proba"))
         self.assertFalse(any(c.startswith("tfidf_") for c in fitted_encoder.feature_columns_))
+        # GridSearchCV clones the pipeline, so the winning encoder is not the object
+        # handed in: the encoder is fit inside the search, never once up front.
+        self.assertIsNot(fitted_encoder, pipe.named_steps["features"])
 
 
 if __name__ == "__main__":

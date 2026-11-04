@@ -2,11 +2,11 @@
 
 This document records the data population and methodological gates for GreenlightML. It separates what the CSV files show from assumptions about commercial outcomes.
 
-## 1. Prediction contract (frozen for V1)
+## 1. Prediction setup (V1)
 
 The decision is pre-release film assessment. The dataset contains a later TMDB snapshot, so each candidate predictor needs evidence that it existed at the decision date. A CSV column being present does not establish historical availability.
 
-The frozen V1 contract is:
+The V1 settings are:
 
 - **Primary target:** `revenue > budget` (`target_nominal`, 75.50% prevalence).
 - **Sensitivity target:** `revenue >= 2 * budget` (`target_hollywood`, 56.02% prevalence).
@@ -14,6 +14,8 @@ The frozen V1 contract is:
 - **Split:** random 80/20 stratified, `random_state=42`; 2,583 train / 646 test.
 - **Features:** 29 basic pre-release features (log budget, runtime, release year/month, 19 genres, top-5 languages + Other).
 - **Excluded:** `popularity`, `vote_average`, `vote_count`; synopsis TF-IDF and director/cast encoding are V2 scope.
+
+The feature list is pre-release by *intent*, not by audited provenance: the per-column availability gate in the EDA report (limitation 5) is still open, so "pre-release" here does not yet mean "proven to exist at a fixed decision date".
 
 Neither label is verified studio net profitability: the data lacks exhibitor settlements, marketing/distribution, financing, and other recoupable costs. V1 reports the nominal target as primary and the 2× target only as sensitivity.
 
@@ -37,7 +39,7 @@ A strict `budget > 10,000 AND revenue > 10,000` rule leaves 3,203 rows, but it i
 The EDA shows the label is **not stationary**: the `revenue > budget` rate runs from **91.6% before 1980** to **74.1%
 from 2000 onward**, while the median reported budget grows from **$0.4M to $30M**. It also shows the rows are **not
 independent**: 628 directors and 1,425 lead actors recur across retained titles. V1 uses the random stratified split
-required by the course protocol and therefore claims only this holdout, not future-film generalization. Chronological
+and therefore claims only this holdout, not future-film generalization. Chronological
 and grouped validation are explicit later-stage audits, not optional silent alternatives. All figures:
 [`docs/EDA_REPORT.md`](./EDA_REPORT.md).
 
@@ -54,7 +56,7 @@ Before reporting model performance:
 5. Compare against a transparent baseline on the same split.
 6. Report prevalence, balanced metrics, uncertainty/variation, and error analysis—not raw accuracy alone.
 
-V1 satisfies steps 1–5 and reports prevalence, balanced metrics, and error analysis. Its variation is the 5-fold sweep, not a formal confidence interval. The 03–04 notebooks remain unexecuted scaffolds for V2 and the final audit.
+V1 fixes the target proxy, population, unit of observation, split, and train-only preprocessing, so steps 2–5 hold for this holdout. Step 1 is only partially closed: the prediction date and the per-column availability of the pre-release features are assumed, not audited. Step 6 is partially met — prevalence, balanced metrics, and a confusion matrix are reported, but variation is the 5-fold sweep rather than a confidence interval. The 03–04 notebooks remain unexecuted scaffolds for V2 and the final audit.
 
 ## 4. Leakage and temporal provenance
 

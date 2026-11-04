@@ -4,10 +4,10 @@ Preprocessing is now leakage-safe: the raw rows are split *before* any
 data-dependent step, and ``FeatureEncoder`` is fit on the training split only.
 Standardization is likewise fit on train and applied to test.
 
-Status: this script is still a preview, not published evidence. The V1 split
-and population contract is frozen, but this benchmark uses the full feature
-set and default models rather than the V1 notebook pipeline, so do not cite
-its scores as validated generalization performance.
+Status: this script is still a preview, not published evidence. It reuses the
+V1 split policy and population, but it runs the full feature set and default
+models rather than the V1 notebook pipeline, so do not cite its scores as
+validated generalization performance.
 """
 import os
 import sys
@@ -39,8 +39,8 @@ def run_benchmark():
     df_reported = filter_reported_financials(df_raw)
 
     # Split the raw rows FIRST so no preprocessing can observe the holdout. The
-    # V1 contract freezes the random stratified policy; the benchmark remains a
-    # preview, not the validated V1 notebook.
+    # split policy is the V1 one; the benchmark itself remains a preview, not the
+    # validated V1 notebook.
     train_df, test_df = split_population(df_reported, policy=FROZEN_SPLIT_POLICY)
     y_tr = train_df["target_nominal"]
     y_te = test_df["target_nominal"]
@@ -59,7 +59,7 @@ def run_benchmark():
     X_tr_leak_sc = scaler_leak.fit_transform(X_tr_leak)
     X_te_leak_sc = scaler_leak.transform(X_te_leak)
 
-    print("PREVIEW: leakage-safe preprocessing; the V1 contract is frozen, but this is not the V1 notebook.")
+    print("PREVIEW: leakage-safe preprocessing; this is not the V1 notebook.")
     print("Do not cite these scores as validated generalization performance.\n")
     results = []
 

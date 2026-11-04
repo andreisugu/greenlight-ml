@@ -44,7 +44,7 @@ def evaluate_model(
     rec = recall_score(y_true_values, y_pred_values, zero_division=0)
     f1_macro = f1_score(y_true_values, y_pred_values, average="macro", zero_division=0)
     auc = roc_auc_score(y_true_values, y_prob_values) if y_prob_values is not None else 0.5
-    # For a constant/uns scored predictor the PR baseline is the prevalence.
+    # For a constant (unscored) predictor the PR baseline is the prevalence.
     pr_auc = (
         average_precision_score(y_true_values, y_prob_values)
         if y_prob_values is not None

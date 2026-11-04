@@ -1,17 +1,17 @@
 # V1 Report — Regularized Linear Baseline
 
 > Companion to [`notebooks/02_baseline_linear_model.ipynb`](../notebooks/02_baseline_linear_model.ipynb).
-> The split receipt is committed as [`artifacts/split_contract.json`](../artifacts/split_contract.json).
+> The split receipt is committed as [`artifacts/split_receipt.json`](../artifacts/split_receipt.json).
 > Every metric below is produced by the executed notebook.
 
-## Contract v1.0
+## V1 settings
 
-| Element | Frozen choice |
+| Element | V1 value |
 |---|---|
 | Primary target | `revenue > budget` (`target_nominal`, 75.50%) |
 | Sensitivity target | `revenue >= 2 × budget` (`target_hollywood`, 56.02%) |
 | Population | 3,229 titles with positive finite reported budget and revenue |
-| Prediction time | Pre-release only; `popularity`, `vote_average`, `vote_count` excluded |
+| Prediction time | Pre-release only; `popularity`, `vote_average`, `vote_count` excluded. Availability of budget, runtime, genres, and language at a fixed decision date is **assumed, not audited**. |
 | Split | Random 80/20 stratified, seed 42: 2,583 train / 646 test |
 | Features | 29 basic pre-release features: log budget, runtime, year, month, 19 genres, top-5 languages + Other |
 | Threshold | 0.50 reported, plus an out-of-fold tuned threshold |
@@ -24,7 +24,7 @@ The pipeline is `FeatureEncoder → StandardScaler → LogisticRegression`, so t
 
 - Grid: `C ∈ {0.001, 0.01, 0.1, 1, 10, 100}`, `penalty ∈ {l1, l2}`, `class_weight ∈ {None, balanced}` (24 configurations).
 - Best CV ROC-AUC: **0.6021** — `C=0.1`, `penalty=l1`, `class_weight=None`.
-- OOF-tuned threshold: **0.74**, chosen for maximum balanced accuracy on training folds.
+- OOF-tuned threshold: **0.74**, chosen for maximum balanced accuracy on training folds. Those folds already selected the hyperparameters, so the threshold is mildly optimistic; the holdout is unaffected because the threshold never sees it.
 
 ## Holdout results (646 titles)
 
@@ -40,7 +40,7 @@ Confusion matrix at 0.74: **TN=86, FP=72, FN=186, TP=302**. At 0.50 the model se
 
 The baseline carries real but weak signal: ROC-AUC 0.604 and PR-AUC 0.809 versus 0.500 / 0.755 for the dummy. Accuracy alone would hide this because the positive class is 75.5% of the holdout.
 
-Limits: the random split mixes eras and recurring directors/actors, and the population is selected by financial reporting. This is a 1916–2016 reported-financials holdout, not a future-film or studio-profit claim. No portfolio/ROI number is published from V1.
+Limits: the random split mixes eras and recurring directors/actors, and the population is selected by financial reporting. Feature availability at a fixed decision date is assumed, not audited, so the per-column provenance gate in the EDA report (limitation 5) stays open. This is a 1916–2016 reported-financials holdout, not a future-film or studio-profit claim. No portfolio/ROI number is published from V1.
 
 ## Reproduce
 
@@ -49,4 +49,4 @@ python -m unittest discover -s tests -v
 jupyter nbconvert --to notebook --execute --inplace notebooks/02_baseline_linear_model.ipynb
 ```
 
-The V1 environment pins `scikit-learn<1.8` because 1.8 deprecates the course-required `penalty` API.
+The V1 environment pins `scikit-learn<1.8` because 1.8 deprecates the `penalty` parameter used by the grid (removal is scheduled for 1.10).

@@ -185,7 +185,7 @@ stay out of the pre-release feature set and are revisited only as a controlled l
 | EDA breadth: distributions, categories, relations, groups, time | §6–§9, 12 figures | **PASS** |
 | Every figure answers a written question | 13 `Question` prompts | **PASS** |
 | Decisions logged (observation → hypothesis → test → action) | Notebook §14 decision log | **PASS** |
-| Reproducibility | Clean kernel, executed notebook, 24 passing tests | **PASS** |
+| Reproducibility | Clean kernel, executed notebook, 18 passing tests at audit time | **PASS** |
 | Handoff: single explicit population; no premature model claims | §5/§8; no scores published | **PASS** |
 
 ---
@@ -199,7 +199,8 @@ stay out of the pre-release feature set and are revisited only as a controlled l
 3. **Non-stationary label.** The proxy rate and dollar scale drift across eras; validation must respect time.
 4. **Non-independent rows.** Directors and lead actors recur, so entity leakage across folds is possible.
 5. **Unresolved prediction date.** The intended pre-release decision date is not yet frozen; feature availability must be
-   proven per column before any model receipt is published.
+   proven per column before any receipt is read as pre-release generalization evidence. V1 therefore reports a
+   holdout result under an assumed prediction time, not a pre-release decision tool.
 
 Downstream plan: freeze a single target, population, and prediction date; then run the modeling notebooks on an identical
 locked split with train-only preprocessing (see [`docs/METHODOLOGY.md`](./METHODOLOGY.md)).
