@@ -185,7 +185,7 @@ stay out of the pre-release feature set and are revisited only as a controlled l
 | EDA breadth: distributions, categories, relations, groups, time | §6–§9, 12 figures | **PASS** |
 | Every figure answers a written question | 13 `Question` prompts | **PASS** |
 | Decisions logged (observation → hypothesis → test → action) | Notebook §14 decision log | **PASS** |
-| Reproducibility | Clean kernel, executed notebook, 18 passing tests | **PASS** |
+| Reproducibility | Clean kernel, executed notebook, 24 passing tests | **PASS** |
 | Handoff: single explicit population; no premature model claims | §5/§8; no scores published | **PASS** |
 
 ---

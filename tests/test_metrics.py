@@ -34,6 +34,8 @@ class GrossToBudgetSurplusTests(unittest.TestCase):
         )
 
         self.assertEqual(result["Macro F1"], 0.3333)
+        self.assertIn("PR-AUC", result)
+        self.assertEqual(result["PR-AUC"], 1.0)
         self.assertIn("Gross-to-Budget Surplus Proxy", result)
         self.assertNotIn("Net Portfolio ROI", result)
         self.assertEqual(

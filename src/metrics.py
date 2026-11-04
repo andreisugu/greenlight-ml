@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, Optional
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, balanced_accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, balanced_accuracy_score, average_precision_score
 
 def calculate_gross_to_budget_surplus(df_selected: pd.DataFrame) -> float:
     """
@@ -44,6 +44,12 @@ def evaluate_model(
     rec = recall_score(y_true_values, y_pred_values, zero_division=0)
     f1_macro = f1_score(y_true_values, y_pred_values, average="macro", zero_division=0)
     auc = roc_auc_score(y_true_values, y_prob_values) if y_prob_values is not None else 0.5
+    # For a constant/uns scored predictor the PR baseline is the prevalence.
+    pr_auc = (
+        average_precision_score(y_true_values, y_prob_values)
+        if y_prob_values is not None
+        else float(np.mean(y_true_values))
+    )
 
     selected_slice = test_df.iloc[y_pred_values == 1]
     gross_surplus = calculate_gross_to_budget_surplus(selected_slice)
@@ -57,6 +63,7 @@ def evaluate_model(
         "Recall": round(rec, 4),
         "Macro F1": round(f1_macro, 4),
         "ROC-AUC": round(auc, 4),
+        "PR-AUC": round(pr_auc, 4),
         "Gross-to-Budget Surplus Proxy": f"{gross_surplus * 100:+.2f}%",
         "Titles Picked": f"{len(selected_slice)} / {len(test_df)}"
     }

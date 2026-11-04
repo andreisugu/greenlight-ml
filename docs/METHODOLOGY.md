@@ -2,16 +2,20 @@
 
 This document records the data population and methodological gates for GreenlightML. It separates what the CSV files show from assumptions about commercial outcomes.
 
-## 1. Prediction contract (still to be finalized)
+## 1. Prediction contract (frozen for V1)
 
-The intended decision is pre-release film assessment. The dataset contains a later TMDB snapshot, so each candidate predictor needs evidence that it existed at the decision date. A CSV column being present does not establish historical availability.
+The decision is pre-release film assessment. The dataset contains a later TMDB snapshot, so each candidate predictor needs evidence that it existed at the decision date. A CSV column being present does not establish historical availability.
 
-Two labels are currently defined as **gross-to-budget proxies**:
+The frozen V1 contract is:
 
-- Nominal proxy: `revenue > budget`.
-- Alternative 2× proxy: `revenue >= 2 * budget`.
+- **Primary target:** `revenue > budget` (`target_nominal`, 75.50% prevalence).
+- **Sensitivity target:** `revenue >= 2 * budget` (`target_hollywood`, 56.02% prevalence).
+- **Population:** 3,229 titles with positive finite reported budget and revenue.
+- **Split:** random 80/20 stratified, `random_state=42`; 2,583 train / 646 test.
+- **Features:** 29 basic pre-release features (log budget, runtime, release year/month, 19 genres, top-5 languages + Other).
+- **Excluded:** `popularity`, `vote_average`, `vote_count`; synopsis TF-IDF and director/cast encoding are V2 scope.
 
-Neither is verified studio net profitability. The data does not include exhibitor settlements, marketing/distribution costs, financing, or all recoupable costs. The project must choose the primary proxy and report the other as sensitivity analysis.
+Neither label is verified studio net profitability: the data lacks exhibitor settlements, marketing/distribution, financing, and other recoupable costs. V1 reports the nominal target as primary and the 2× target only as sensitivity.
 
 ## 2. Primary EDA population and selection limits
 
@@ -32,14 +36,14 @@ A strict `budget > 10,000 AND revenue > 10,000` rule leaves 3,203 rows, but it i
 
 The EDA shows the label is **not stationary**: the `revenue > budget` rate runs from **91.6% before 1980** to **74.1%
 from 2000 onward**, while the median reported budget grows from **$0.4M to $30M**. It also shows the rows are **not
-independent**: 628 directors and 1,425 lead actors recur across retained titles. Consequently, step 2 of the protocol
-below is not optional — prefer chronological validation for a future-film claim and grouped validation when related
-observations could cross the split. A plain random split would mix eras and could leak the same entity into train and
-test. All figures: [`docs/EDA_REPORT.md`](./EDA_REPORT.md).
+independent**: 628 directors and 1,425 lead actors recur across retained titles. V1 uses the random stratified split
+required by the course protocol and therefore claims only this holdout, not future-film generalization. Chronological
+and grouped validation are explicit later-stage audits, not optional silent alternatives. All figures:
+[`docs/EDA_REPORT.md`](./EDA_REPORT.md).
 
-## 3. Evaluation protocol before performance claims
+## 3. Evaluation protocol and V1 status
 
-No model-performance receipt in the repository is currently accepted as validated evidence. The earlier benchmark is withdrawn: it fit TF-IDF vocabulary and category-frequency decisions before the train/test split, and it used the disputed >$10K population restriction. That preprocessing bug is now fixed—`src/features.py` exposes a train-fit `FeatureEncoder` and `scripts/benchmark.py` splits the raw rows before fitting—but the target proxy, population, and decision contract are not frozen, so no scores are published yet.
+V1 follows the protocol below and publishes the first accepted model receipt: [`notebooks/02_baseline_linear_model.ipynb`](../notebooks/02_baseline_linear_model.ipynb) and [`docs/V1_REPORT.md`](./V1_REPORT.md). The earlier benchmark remains withdrawn: it fit TF-IDF vocabulary and category-frequency decisions before the train/test split and used the disputed >$10K population restriction. The leakage bug is fixed (`src/features.py` exposes a train-fit `FeatureEncoder`; `scripts/benchmark.py` splits raw rows before fitting), and V1 puts the encoder and scaler inside a `Pipeline` so they are refit inside every CV fold.
 
 Before reporting model performance:
 
@@ -50,7 +54,7 @@ Before reporting model performance:
 5. Compare against a transparent baseline on the same split.
 6. Report prevalence, balanced metrics, uncertainty/variation, and error analysis—not raw accuracy alone.
 
-The current 02–04 notebooks are unexecuted scaffolds that already use the train-fit encoder, but they are still drafts. The historical README benchmark table is not model evidence.
+V1 satisfies steps 1–6 for the random-split claim. The 03–04 notebooks remain unexecuted scaffolds for V2 and the final audit.
 
 ## 4. Leakage and temporal provenance
 

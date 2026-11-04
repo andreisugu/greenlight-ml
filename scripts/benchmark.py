@@ -4,9 +4,10 @@ Preprocessing is now leakage-safe: the raw rows are split *before* any
 data-dependent step, and ``FeatureEncoder`` is fit on the training split only.
 Standardization is likewise fit on train and applied to test.
 
-Status: this script is still a preview, not published evidence. The target
-proxy, population, and decision contract are not frozen yet, so treat scores
-as provisional and do not cite them as validated generalization performance.
+Status: this script is still a preview, not published evidence. The V1 split
+and population contract is frozen, but this benchmark uses the full feature
+set and default models rather than the V1 notebook pipeline, so do not cite
+its scores as validated generalization performance.
 """
 import os
 import sys
@@ -17,7 +18,12 @@ from sklearn.preprocessing import StandardScaler
 
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.data import load_and_merge_data, filter_reported_financials, split_population
+from src.data import (
+    FROZEN_SPLIT_POLICY,
+    load_and_merge_data,
+    filter_reported_financials,
+    split_population,
+)
 from src.features import FeatureEncoder
 from src.models import get_logistic_regression, get_random_forest
 from src.metrics import evaluate_model
@@ -33,8 +39,9 @@ def run_benchmark():
     df_reported = filter_reported_financials(df_raw)
 
     # Split the raw rows FIRST so no preprocessing can observe the holdout. The
-    # split policy is named explicitly, not hardcoded, because it is not frozen.
-    train_df, test_df = split_population(df_reported, policy="random_stratified_provisional")
+    # V1 contract freezes the random stratified policy; the benchmark remains a
+    # preview, not the validated V1 notebook.
+    train_df, test_df = split_population(df_reported, policy=FROZEN_SPLIT_POLICY)
     y_tr = train_df["target_nominal"]
     y_te = test_df["target_nominal"]
 
@@ -52,7 +59,7 @@ def run_benchmark():
     X_tr_leak_sc = scaler_leak.fit_transform(X_tr_leak)
     X_te_leak_sc = scaler_leak.transform(X_te_leak)
 
-    print("PROVISIONAL PREVIEW: leakage-safe preprocessing, but the target/decision contract is not frozen.")
+    print("PREVIEW: leakage-safe preprocessing; the V1 contract is frozen, but this is not the V1 notebook.")
     print("Do not cite these scores as validated generalization performance.\n")
     results = []
 

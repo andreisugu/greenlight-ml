@@ -20,6 +20,8 @@ Pre-release film modeling research with explicit data-selection, feature-timing,
   &nbsp;·&nbsp;
   <a href="./docs/EDA_REPORT.md"><strong>EDA Report</strong></a>
   &nbsp;·&nbsp;
+  <a href="./docs/V1_REPORT.md"><strong>V1 Report</strong></a>
+  &nbsp;·&nbsp;
   <a href="#evaluation-status"><strong>Evaluation</strong></a>
   &nbsp;·&nbsp;
   <a href="#architecture"><strong>Pipeline</strong></a>
@@ -30,7 +32,7 @@ Pre-release film modeling research with explicit data-selection, feature-timing,
   <img src="https://img.shields.io/badge/python-3.10+-047857?style=flat-square" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/dataset-TMDB_5000-047857?style=flat-square" alt="TMDB 5000 Dataset" />
   <img src="https://img.shields.io/badge/status-in_development-047857?style=flat-square" alt="Status: In Development" />
-  <img src="https://img.shields.io/badge/stage-eda_%26_schema_audit-047857?style=flat-square" alt="Stage" />
+  <img src="https://img.shields.io/badge/stage-v1_baseline-047857?style=flat-square" alt="Stage" />
 </p>
 
 ---
@@ -58,19 +60,19 @@ uv pip install -r requirements.txt
 python -m ipykernel install --user --name greenlight-ml --display-name "Greenlight ML (.venv)"
 ```
 
-### 2. Fetch the data and run the EDA
+### 2. Fetch the data and run the notebooks
 
 ```bash
 # Downloads the two CSV files into the git-ignored data/ directory
 python scripts/download_data.py
 
-# Open either EDA notebook (or both) in JupyterLab
-jupyter lab notebooks/01_exploratory_data_analysis.ipynb notebooks/01b_quick_exploratory_data_analysis.ipynb
+# EDA (audit) and V1 (baseline) notebooks
+jupyter lab notebooks/01_exploratory_data_analysis.ipynb notebooks/02_baseline_linear_model.ipynb
 
 # In each notebook, select the "Greenlight ML (.venv)" kernel.
 ```
 
-The model benchmark is currently a development scaffold, not a validated result; see [methodology](./docs/METHODOLOGY.md).
+The V1 baseline is a small, frozen-contract receipt; see [V1 Report](./docs/V1_REPORT.md). The benchmark script remains a development preview, not a validated result; see [methodology](./docs/METHODOLOGY.md).
 
 ### 3. Verify the data contracts
 
@@ -105,7 +107,7 @@ variance on two principal components with heavy class overlap; and the proxy rat
 
 * [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
 * [x] **Phase 2: Exploratory Data Analysis & Schema Audits** — Primary population is 3,229 rows with positive finite reported finances; the >$10K rule is sensitivity-only. A contract-tested merge, reconciled exclusions, distributions, category cardinality, entity repetition, PCA structure, and temporal-regime stability are all documented. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb) and [`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md).
-* [ ] **Phase 3: Regularized Linear Baseline Modeling** — Logistic Regression with cross-validated penalty sweeps ($C$, solvers) vs. Naive Majority baseline ([`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb)).
+* [x] **Phase 3: Regularized Linear Baseline Modeling** — Frozen V1 contract (3,229 reported-financials titles, 80/20 stratified split, seed 42), Dummy majority baseline vs L1/L2 Logistic Regression tuned over `C` and `class_weight` with 5-fold CV. Holdout: ROC-AUC 0.604, PR-AUC 0.809; the 0.50 threshold stays at the majority baseline, while an OOF-tuned 0.74 threshold gives balanced accuracy 0.582. See [`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb) and [`docs/V1_REPORT.md`](./docs/V1_REPORT.md).
 * [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
 * [ ] **Phase 5: Leakage & Financial Proxy Analysis** — Controlled post-release leakage experiment and explicitly limited gross-to-budget proxy analysis ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
 
@@ -113,13 +115,15 @@ variance on two principal components with heavy class overlap; and the proxy rat
 
 ## 📊 Evaluation Status
 
-> **No validated model-performance or portfolio results are published yet.** Receipts are withheld pending a frozen target/decision contract. The earlier benchmark fit TF-IDF/category representations before the split and used a disputed >$10K population restriction; that preprocessing bug is now fixed (`src/features.py` `FeatureEncoder` + split-before-fit in `scripts/benchmark.py`), but the target proxy and population are still not frozen. Do not cite any score as generalization evidence.
+> **V1 is a validated course baseline, not a generalization claim.** The contract is frozen: `revenue > budget` on 3,229 reported-financials titles, 80/20 stratified split with seed 42, pre-release features only. The notebook and [`artifacts/split_contract.json`](./artifacts/split_contract.json) are the receipts.
 
-The first modeling stage must establish a transparent baseline on the same locked split as subsequent models. Metrics will be published only after the target limit is fixed and preprocessing is confirmed to be fitted within training folds only. The current model notebooks remain drafts.
+On the 646-title holdout, the tuned L1 logistic regression reaches **ROC-AUC 0.604** and **PR-AUC 0.809** (dummy: 0.500 / 0.755). At the 0.50 threshold it selects 638/646 titles and stays at the majority-class accuracy (balanced accuracy 0.504); the OOF-tuned 0.74 threshold selects 374/646 and raises balanced accuracy to 0.582 and macro F1 to 0.550, while accuracy falls to 0.601. That trade-off is the actual V1 result, not a headline accuracy.
+
+The random split mixes eras and recurring directors/actors, and the population is selected by financial reporting. Do not read V1 as future-film or studio-profit evidence. V2 adds synopsis text and team features; the leakage and financial-proxy audits remain later stages.
 
 ---
 
-## 🏗️ Planned Architecture (Not Yet Validated)
+## 🏗️ Pipeline Architecture (V1 path validated; later stages planned)
 
 ```mermaid
 flowchart TD
@@ -176,7 +180,10 @@ greenlight-ml/
 │   ├── DATA_DICTIONARY.md     # 22 unique features, relational merge, population & sensitivity audit
 │   ├── METHODOLOGY.md         # Population definition, selection limits, leakage-safe evaluation protocol
 │   ├── METRICS_AND_ROI.md     # Metric definitions and financial-proxy limitations
-│   └── EDA_REPORT.md          # Written Stage-1 EDA report: question → method → finding → decision
+│   ├── EDA_REPORT.md          # Written Stage-1 EDA report: question → method → finding → decision
+│   └── V1_REPORT.md           # Written V1 baseline report: contract, tuning, holdout, limits
+├── artifacts/
+│   └── split_contract.json    # Frozen V1 split: counts, rates, test IDs, data hashes
 ├── notebooks/                 # Interactive Jupyter notebooks for research & reproduction
 │   ├── 01_exploratory_data_analysis.ipynb
 │   ├── 02_baseline_linear_model.ipynb
@@ -190,7 +197,7 @@ greenlight-ml/
 ├── scripts/
 │   ├── download_data.py       # Kaggle dataset fetcher via kagglehub
 │   └── benchmark.py           # Experimental scaffold (not valid evidence yet)
-├── tests/                     # Data-contract & metric unit tests
+├── tests/                     # 24 data, split, feature, and metric contract tests
 ├── assets/
 │   └── banner.svg             # Dark-mode cinema aperture vector banner
 ├── .gitignore                 # Strict data & private cache ignore rules

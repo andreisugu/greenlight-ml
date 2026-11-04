@@ -5,9 +5,12 @@ from pathlib import Path
 import pandas as pd
 
 from src.data import (
+    FROZEN_SPLIT_POLICY,
+    build_split_contract,
     filter_minimum_scale,
     filter_reported_financials,
     load_and_merge_data,
+    split_population,
 )
 
 
@@ -113,6 +116,44 @@ class DataContractTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "key mismatch"):
                 load_and_merge_data(movies_path, credits_path)
+
+
+class SplitContractTests(unittest.TestCase):
+    def setUp(self):
+        self.frame = pd.DataFrame(
+            {
+                "id": list(range(80)),
+                "target_nominal": [0] * 20 + [1] * 60,
+            }
+        )
+
+    def test_frozen_split_is_deterministic_and_stratified(self):
+        train_a, test_a = split_population(self.frame, FROZEN_SPLIT_POLICY)
+        train_b, test_b = split_population(self.frame, FROZEN_SPLIT_POLICY)
+
+        self.assertEqual(train_a["id"].tolist(), train_b["id"].tolist())
+        self.assertEqual(test_a["id"].tolist(), test_b["id"].tolist())
+        self.assertEqual(len(train_a), 64)
+        self.assertEqual(len(test_a), 16)
+        self.assertAlmostEqual(test_a["target_nominal"].mean(), 0.75)
+
+    def test_unknown_policy_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "unknown split policy"):
+            split_population(self.frame, "chronological")
+
+    def test_split_contract_records_counts_and_test_ids(self):
+        train, test = split_population(self.frame, FROZEN_SPLIT_POLICY)
+
+        contract = build_split_contract(
+            self.frame, train, test, include_hashes=False
+        )
+
+        self.assertEqual(contract["population_rows"], 80)
+        self.assertEqual(contract["train_rows"], 64)
+        self.assertEqual(contract["test_rows"], 16)
+        self.assertEqual(contract["test_ids"], [int(value) for value in test["id"]])
+        self.assertEqual(contract["split_policy"], FROZEN_SPLIT_POLICY)
+        self.assertEqual(contract["data_sha256"], {})
 
 
 if __name__ == "__main__":

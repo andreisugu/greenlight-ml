@@ -99,5 +99,63 @@ class FeatureEncoderLeakageTests(unittest.TestCase):
         pd.testing.assert_frame_equal(first, second)
 
 
+class FeatureEncoderV1Tests(unittest.TestCase):
+    def setUp(self):
+        rows = []
+        for i in range(8):
+            rows.append(_row(
+                "Action" if i % 2 else "Drama",
+                "Alice" if i < 4 else "Bob",
+                "en" if i % 2 else "fr",
+                "alpha beta" if i < 4 else "gamma delta",
+                f"200{i}-01-01",
+                1_000 + i,
+                100 + i,
+            ))
+        self.frame = pd.DataFrame(rows)
+        self.y = [0, 1, 0, 1, 0, 1, 0, 1]
+
+    def test_basic_feature_set_excludes_text_and_director(self):
+        encoder = FeatureEncoder(include_text=False, include_director=False).fit(self.frame)
+
+        X = encoder.transform(self.frame)
+
+        self.assertFalse(any(c.startswith("tfidf_") for c in X.columns))
+        self.assertFalse(any(c.startswith("dir_") for c in X.columns))
+        self.assertIn("genre_Action", X.columns)
+        self.assertIn("lang_Other", X.columns)
+
+    def test_fit_transform_accepts_pipeline_y_argument(self):
+        encoder = FeatureEncoder(include_text=False, include_director=False)
+
+        X = encoder.fit_transform(self.frame, self.y)
+
+        self.assertEqual(len(X), len(self.frame))
+
+    def test_pipeline_refits_encoder_inside_cv(self):
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import GridSearchCV, StratifiedKFold
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        pipe = Pipeline([
+            ("features", FeatureEncoder(include_text=False, include_director=False)),
+            ("scaler", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=1000, solver="liblinear")),
+        ])
+        grid = GridSearchCV(
+            pipe,
+            {"clf__C": [0.1, 1.0]},
+            cv=StratifiedKFold(n_splits=4),
+            n_jobs=1,
+        )
+
+        grid.fit(self.frame, self.y)
+
+        fitted_encoder = grid.best_estimator_.named_steps["features"]
+        self.assertTrue(hasattr(grid.best_estimator_, "predict_proba"))
+        self.assertFalse(any(c.startswith("tfidf_") for c in fitted_encoder.feature_columns_))
+
+
 if __name__ == "__main__":
     unittest.main()

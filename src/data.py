@@ -1,5 +1,9 @@
 """TMDB file validation, relational merge, and explicit population definitions."""
+import json
 import os
+from hashlib import sha256
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 from typing import Tuple, Optional
@@ -102,9 +106,10 @@ def filter_minimum_scale(df: pd.DataFrame, usd_floor: float = 10_000) -> pd.Data
     valid = df["budget"].gt(usd_floor) & df["revenue"].gt(usd_floor)
     return df.loc[valid].copy()
 
-# The train/test split is a result-defining choice that is not frozen yet, so the
-# only policy implemented here is an explicitly named, still-provisional one.
-PROVISIONAL_SPLIT_POLICY = "random_stratified_provisional"
+# V1 freezes a random stratified 80/20 split. Chronological and grouped
+# alternatives are explicit future audits, not silent defaults: a random split
+# mixes eras and can place the same recurring director/actor on both sides.
+FROZEN_SPLIT_POLICY = "random_stratified_v1"
 
 def split_population(
     df: pd.DataFrame,
@@ -114,18 +119,19 @@ def split_population(
     random_state: int = 42,
     stratify_column: str = "target_nominal",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Split the analysis population under an explicitly named policy.
+    """Split the analysis population under the frozen V1 policy.
 
-    The split is a *result-defining* choice and it is not frozen yet: a plain
-    random-stratified split mixes eras and can place the same recurring
-    director/actor on both sides (see ``docs/METHODOLOGY.md``). ``policy`` is a
-    required argument rather than a silent default, and only the provisional
-    policy exists, so a scaffold cannot quietly freeze a split by accident.
+    The split is a *result-defining* choice. V1 uses a random 80/20 stratified
+    split with ``random_state=42`` because that is the course protocol. It mixes
+    eras and can place the same recurring director/actor on both sides (see
+    ``docs/METHODOLOGY.md``), so V1 claims describe this holdout only, not
+    future-film generalization. ``policy`` is required rather than defaulted so
+    no call site can change the split silently.
     """
-    if policy != PROVISIONAL_SPLIT_POLICY:
+    if policy != FROZEN_SPLIT_POLICY:
         raise ValueError(
-            f"unknown split policy {policy!r}; the only implemented (and still "
-            f"provisional) policy is {PROVISIONAL_SPLIT_POLICY!r}"
+            f"unknown split policy {policy!r}; the frozen V1 policy is "
+            f"{FROZEN_SPLIT_POLICY!r}"
         )
     if stratify_column not in df.columns:
         raise ValueError(
@@ -138,3 +144,58 @@ def split_population(
         random_state=random_state,
         stratify=df[stratify_column],
     )
+
+
+def build_split_contract(
+    df: pd.DataFrame,
+    train_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    *,
+    policy: str = FROZEN_SPLIT_POLICY,
+    test_size: float = 0.2,
+    random_state: int = 42,
+    stratify_column: str = "target_nominal",
+    data_paths: Optional[Tuple[str, str]] = None,
+    include_hashes: bool = True,
+) -> dict:
+    """Return the frozen V1 split receipt: counts, rates, IDs, and file hashes."""
+    contract = {
+        "contract_version": "v1.0",
+        "target_primary": "target_nominal",
+        "target_definition": "revenue > budget",
+        "target_sensitivity": "target_hollywood",
+        "population": "positive finite reported budget and revenue",
+        "population_rows": int(len(df)),
+        "split_policy": policy,
+        "test_size": test_size,
+        "random_state": random_state,
+        "stratify_column": stratify_column,
+        "train_rows": int(len(train_df)),
+        "test_rows": int(len(test_df)),
+        "train_positive_rate": round(float(train_df[stratify_column].mean()), 6),
+        "test_positive_rate": round(float(test_df[stratify_column].mean()), 6),
+        "test_ids": [int(value) for value in test_df["id"]],
+        "test_index": [int(value) for value in test_df.index],
+        "data_sha256": {},
+    }
+    if include_hashes:
+        movies_path, credits_path = data_paths or get_default_data_paths()
+        for path in (movies_path, credits_path):
+            path = Path(path)
+            contract["data_sha256"][path.name] = sha256(path.read_bytes()).hexdigest()
+    return contract
+
+
+def write_split_contract(
+    df: pd.DataFrame,
+    train_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    path,
+    **kwargs,
+) -> dict:
+    """Write the V1 split receipt to ``path`` and return it."""
+    contract = build_split_contract(df, train_df, test_df, **kwargs)
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+    return contract
