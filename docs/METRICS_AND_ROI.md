@@ -4,9 +4,25 @@
 
 The primary population contains 3,229 rows with positive finite reported budget and revenue. On it, the nominal gross-to-budget label `revenue > budget` has prevalence 75.50%; the alternative `revenue >= 2 * budget` label has prevalence 56.02%.
 
-These are selected-sample label prevalences, not proof of studio profitability. V1 reports a majority-class baseline, accuracy, balanced accuracy, precision, recall, macro F1, ROC-AUC, PR-AUC, and a confusion matrix on the same 646-title holdout. The full table is in [`V1_REPORT.md`](./V1_REPORT.md).
+These are selected-sample label prevalences, not proof of studio profitability.
 
-V1 result in one line: ROC-AUC 0.604 and PR-AUC 0.809 for the tuned linear model, versus 0.500 / 0.755 for the dummy. At 0.50 the model selects almost every title and stays at majority-class accuracy; the OOF-tuned 0.74 threshold selects 374/646 and reaches balanced accuracy 0.582 and macro F1 0.550.
+### What the names mean
+
+| Term | Plain meaning | "No skill" value |
+|---|---|---|
+| Accuracy | Share of titles labelled correctly | 0.755 (always "hit") |
+| Balanced accuracy | Average of hit-recall and miss-recall | 0.500 |
+| Precision | Of the titles called hits, the share that are | 0.755 |
+| Recall | Of the real hits, the share found | 1.000 (always "hit") |
+| Macro F1 | Precision and recall combined, both classes weighted equally | 0.430 |
+| ROC-AUC | Chance a random hit outranks a random miss | 0.500 |
+| PR-AUC | Same idea, focused on the titles selected | 0.755 |
+| Threshold | Probability above which a title is called a hit | — |
+| Cross-validation | Score each of 5 parts with a model trained on the other 4 | — |
+| OOF | "Out-of-fold": a training row scored by a model that did not see it | — |
+
+"No skill" is what a predictor that always answers "hit" scores on the same 646-title holdout, so it is the number a
+model has to beat. V1 reports all of these on that holdout; the full table is in [`V1_REPORT.md`](./V1_REPORT.md).
 
 ## Financial proxy (not ROI)
 

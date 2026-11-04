@@ -106,7 +106,7 @@ variance on two principal components with heavy class overlap; and the proxy rat
 
 * [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
 * [x] **Phase 2: Exploratory Data Analysis** — Primary population is 3,229 rows with positive finite reported finances; the >$10K rule is sensitivity-only. The EDA covers the merge and its missingness, that subset's financial distributions on a log scale, the correlational structure, and genre/director frequency. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb) and [`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md).
-* [x] **Phase 3: Regularized Linear Baseline Modeling** — Fixed V1 settings (3,229 reported-financials titles, 80/20 stratified split, seed 42), Dummy majority baseline vs L1/L2 Logistic Regression tuned over `C`, `penalty`, and `class_weight` with 5-fold CV. Holdout: ROC-AUC 0.604, PR-AUC 0.809; the 0.50 threshold stays at the majority baseline, while an OOF-tuned 0.74 threshold gives balanced accuracy 0.582. See [`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb) and [`docs/V1_REPORT.md`](./docs/V1_REPORT.md).
+* [x] **Phase 3: Baseline Linear Model** — Logistic regression compared with always answering "hit", tuned on the training rows only. On 646 held-out titles it ranks a hit above a miss 60.4% of the time (a coin flip: 50%); at a 0.50 cut-off its accuracy matches always saying "hit", and a 0.74 cut-off trades accuracy for a better balance between the two classes. See [`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb) and [`docs/V1_REPORT.md`](./docs/V1_REPORT.md).
 * [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
 * [ ] **Phase 5: Leakage & Financial Proxy Analysis** — Controlled post-release leakage experiment and explicitly limited gross-to-budget proxy analysis ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
 
@@ -114,11 +114,11 @@ variance on two principal components with heavy class overlap; and the proxy rat
 
 ## 📊 Evaluation Status
 
-> **V1 is a validated baseline for this holdout, not a generalization claim.** The settings are fixed: `revenue > budget` on 3,229 reported-financials titles, 80/20 stratified split with seed 42, pre-release features only — with the availability of each pre-release column still assumed rather than audited. The notebook and [`artifacts/split_receipt.json`](./artifacts/split_receipt.json) are the receipts.
+> **V1 is a first baseline, not a result about future films.** The settings are fixed: `revenue > budget` on 3,229 reported-financials titles, an 80/20 random split with seed 42, and pre-release features only — with the availability of each column still assumed rather than audited.
 
-On the 646-title holdout, the tuned L1 logistic regression reaches **ROC-AUC 0.604** and **PR-AUC 0.809** (dummy: 0.500 / 0.755). At the 0.50 threshold it selects 638/646 titles and stays at the majority-class accuracy (balanced accuracy 0.504); the OOF-tuned 0.74 threshold selects 374/646 and raises balanced accuracy to 0.582 and macro F1 to 0.550, while accuracy falls to 0.601. That trade-off is the actual V1 result, not a headline accuracy.
+On the 646 held-out titles, the tuned logistic regression ranks a hit above a miss about 60% of the time (**ROC-AUC 0.604**; a coin flip is 0.500) and reaches **PR-AUC 0.809** (0.755 for always answering "hit"). At a 0.50 cut-off it labels 638 of 646 titles as hits and scores the same accuracy as always answering "hit" (75.2% vs 75.5%). At a 0.74 cut-off it labels 374 and lifts balanced accuracy from 0.504 to 0.582 while accuracy falls to 60.1%. Whether that trade is worth it depends on what a missed hit costs.
 
-The random split mixes eras and recurring directors/actors, and the population is selected by financial reporting. Do not read V1 as future-film or studio-profit evidence. V2 adds synopsis text and team features; the leakage and financial-proxy audits remain later stages.
+The split mixes eras and recurring directors/actors, and the population is limited to films that reported finances. V1 is not evidence about future films or studio profit. V2 adds synopsis text and team features; the leakage and financial-proxy audits remain later stages.
 
 ---
 
