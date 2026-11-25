@@ -9,13 +9,23 @@ training split only; transform never looks at other rows to decide columns.
 ``Pipeline`` and be refitted inside every cross-validation fold.
 """
 import json
-from typing import List
+import re
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
+
+_NON_LETTERS = re.compile(r"[^a-z ]+")
+
+
+def clean_text(text: str) -> str:
+    """Lowercase, drop digits/punctuation, and collapse whitespace."""
+    if not isinstance(text, str):
+        return ""
+    return " ".join(_NON_LETTERS.sub(" ", text.lower()).split())
 
 
 def parse_json_list(json_str: str, key: str = "name") -> list:
@@ -63,16 +73,30 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
         baseline contains only pre-release structured features.
     include_director:
         If False, skip the director one-hot block. V1 uses False; V2 adds it.
+    tfidf_ngram_range:
+        Word n-gram span for the synopsis TF-IDF. ``(1, 2)`` keeps single words
+        and adjacent pairs.
+    include_cast:
+        If True, add frequency encodings for the top-``cast_top_n`` billed
+        actors. A person's frequency is their share of training rows; someone
+        who never appears in training scores 0.0.
+    cast_top_n:
+        How many billed actors per title the frequency block reads.
     """
 
     def __init__(self, max_tfidf_features: int = 100, top_directors: int = 30,
                  top_languages: int = 5, include_text: bool = True,
-                 include_director: bool = True):
+                 include_director: bool = True,
+                 tfidf_ngram_range: Tuple[int, int] = (1, 2),
+                 include_cast: bool = False, cast_top_n: int = 3):
         self.max_tfidf_features = max_tfidf_features
         self.top_directors = top_directors
         self.top_languages = top_languages
         self.include_text = include_text
         self.include_director = include_director
+        self.tfidf_ngram_range = tfidf_ngram_range
+        self.include_cast = include_cast
+        self.cast_top_n = cast_top_n
         self._fitted = False
 
     # -- helpers ---------------------------------------------------------
@@ -84,10 +108,20 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     def _directors(df: pd.DataFrame):
         return df["crew"].apply(extract_director)
 
+    @staticmethod
+    def _text(df: pd.DataFrame) -> pd.Series:
+        return df["overview"].fillna("").astype(str).map(clean_text)
+
+    def _cast_slots(self, df: pd.DataFrame) -> List[List[str]]:
+        """Per row, the top-billed actor names (fewer than ``cast_top_n`` when missing)."""
+        return df["cast"].apply(lambda blob: extract_top_cast(blob, self.cast_top_n)).tolist()
+
     def _required_columns(self):
         columns = ["genres", "original_language", "release_date", "budget", "runtime"]
         if self.include_director:
             columns.append("crew")
+        if self.include_cast:
+            columns.append("cast")
         if self.include_text:
             columns.append("overview")
         return columns
@@ -112,8 +146,18 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
                 name for name in director_counts.head(self.top_directors).index
                 if name != "Other"
             ]
+            self.director_share_ = (director_counts / len(df)).to_dict()
         else:
             self.kept_directors_ = []
+            self.director_share_ = {}
+
+        if self.include_cast:
+            actor_counts = pd.Series(
+                [actor for row in self._cast_slots(df) for actor in row]
+            ).value_counts()
+            self.actor_share_ = (actor_counts / len(df)).to_dict()
+        else:
+            self.actor_share_ = {}
 
         language_counts = df["original_language"].astype(str).value_counts()
         self.kept_languages_: List[str] = list(language_counts.head(self.top_languages).index)
@@ -125,8 +169,9 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
 
         if self.include_text:
             self.tfidf_ = TfidfVectorizer(max_features=self.max_tfidf_features,
-                                          stop_words="english")
-            self.tfidf_.fit(df["overview"].fillna("").astype(str))
+                                          stop_words="english",
+                                          ngram_range=self.tfidf_ngram_range)
+            self.tfidf_.fit(self._text(df))
         else:
             self.tfidf_ = None
 
@@ -177,6 +222,27 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
             directors.index = index
             parts.append(directors)
 
+        if self.include_director or self.include_cast:
+            # Frequency encoding: a person's share of training rows. Anyone absent
+            # from training scores 0.0, so no entity can leak in from the test rows.
+            people = pd.DataFrame(index=index)
+            if self.include_director:
+                people["director_freq"] = (
+                    self._directors(df).map(self.director_share_).fillna(0.0).astype(float)
+                )
+            if self.include_cast:
+                slots = self._cast_slots(df)
+                for position in range(self.cast_top_n):
+                    people[f"cast{position + 1}_freq"] = [
+                        self.actor_share_.get(row[position], 0.0) if position < len(row) else 0.0
+                        for row in slots
+                    ]
+                people["cast_max_freq"] = [
+                    max((self.actor_share_.get(actor, 0.0) for actor in row), default=0.0)
+                    for row in slots
+                ]
+            parts.append(people)
+
         kept_languages = set(self.kept_languages_)
         language_clean = df["original_language"].astype(str).apply(
             lambda code: code if code in kept_languages else "Other"
@@ -189,7 +255,7 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
         parts.append(languages)
 
         if self.include_text:
-            tfidf_matrix = self.tfidf_.transform(df["overview"].fillna("").astype(str))
+            tfidf_matrix = self.tfidf_.transform(self._text(df))
             tfidf = pd.DataFrame(
                 tfidf_matrix.toarray(),
                 columns=[f"tfidf_{term}" for term in self.tfidf_.get_feature_names_out()],

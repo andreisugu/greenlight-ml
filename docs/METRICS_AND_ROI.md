@@ -20,6 +20,11 @@ These are selected-sample label prevalences, not proof of studio profitability.
 | Threshold | Probability above which a title is called a hit | — |
 | Cross-validation | Score each of 5 parts with a model trained on the other 4 | — |
 | OOF | "Out-of-fold": a training row scored by a model that did not see it | — |
+| TF-IDF | Word score: frequent in this film, rare across films | — |
+| Bigram | Two adjacent words treated as one term | — |
+| Frequency encoding | Replace a name with its share of training rows; unseen → 0 | 0 for an unseen person |
+| Gain | XGBoost's own count of how much a column improved its trees | — |
+| Permutation importance | Shuffle one column, measure the drop in ROC-AUC | 0.0 |
 
 "No skill" is what a predictor that always answers "hit" scores on the same 646-title holdout, so it is the number a
 model has to beat. V1 reports all of these on that holdout; the full table is in [`V1_REPORT.md`](./V1_REPORT.md).
@@ -38,4 +43,4 @@ V1 does not publish a portfolio or ROI number. The gross-to-budget proxy is comp
 
 ## Status of historical benchmark values
 
-Previously published benchmark receipts (including the 641-title holdout and ROI uplift claims) are withdrawn as validated evidence. They came from a pipeline that fit feature vocabularies/category choices before the train/test split, and they used a disputed >$10K population restriction. The leakage bug is fixed (`FeatureEncoder` + split-before-fit), and V1 now fixes its settings and publishes a receipt. The remaining 03–04 notebooks are still drafts.
+Previously published benchmark receipts (including the 641-title holdout and ROI uplift claims) are withdrawn as validated evidence. They came from a pipeline that fit feature vocabularies/category choices before the train/test split, and they used a disputed >$10K population restriction. The leakage bug is fixed (`FeatureEncoder` + split-before-fit), and V1 now fixes its settings and publishes a receipt. V2 reports the same metrics on the same holdout and adds TF-IDF, frequency-encoding, gain and permutation-importance terms to the table above; notebook 04 is still a draft.

@@ -107,7 +107,7 @@ variance on two principal components with heavy class overlap; and the proxy rat
 * [x] **Phase 1: Architecture, Scaffolding & Data Dictionary** — Core repository layout, TMDB 5000 deduplication audit, methodology definition, and feature engineering skeleton.
 * [x] **Phase 2: Exploratory Data Analysis** — Primary population is 3,229 rows with positive finite reported finances; the >$10K rule is sensitivity-only. The EDA covers the merge and its missingness, that subset's financial distributions on a log scale, the correlational structure, and genre/director frequency. See [`notebooks/01_exploratory_data_analysis.ipynb`](./notebooks/01_exploratory_data_analysis.ipynb) and [`docs/EDA_REPORT.md`](./docs/EDA_REPORT.md).
 * [x] **Phase 3: Baseline Linear Model** — Logistic regression compared with always answering "hit", tuned on the training rows only. On 646 held-out titles it ranks a hit above a miss 60.4% of the time (a coin flip: 50%); at a 0.50 cut-off its accuracy matches always saying "hit", and a 0.74 cut-off trades accuracy for a better balance between the two classes. See [`notebooks/02_baseline_linear_model.ipynb`](./notebooks/02_baseline_linear_model.ipynb) and [`docs/V1_REPORT.md`](./docs/V1_REPORT.md).
-* [ ] **Phase 4: Nonlinear Ensemble Modeling & NLP** — Overview synopsis TF-IDF embeddings, director/lead cast frequency encoding, and XGBoost/Random Forest tuning ([`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb)).
+* [x] **Phase 4: Text, People & Tree Ensembles** — Synopsis TF-IDF (150 terms, unigrams and bigrams), director and top-3 cast frequency encodings, and tuned XGBoost plus Random Forest. Holdout ROC-AUC rises from 0.604 to 0.709; most of the gain comes from how often a director and lead actor appear in training, not from the text. See [`notebooks/03_advanced_ensemble_model.ipynb`](./notebooks/03_advanced_ensemble_model.ipynb) and [`docs/V2_REPORT.md`](./docs/V2_REPORT.md).
 * [ ] **Phase 5: Leakage & Financial Proxy Analysis** — Controlled post-release leakage experiment and explicitly limited gross-to-budget proxy analysis ([`notebooks/04_leakage_audit_and_roi.ipynb`](./notebooks/04_leakage_audit_and_roi.ipynb)).
 
 ---
@@ -118,7 +118,9 @@ variance on two principal components with heavy class overlap; and the proxy rat
 
 On the 646 held-out titles, the tuned logistic regression ranks a hit above a miss about 60% of the time (**ROC-AUC 0.604**; a coin flip is 0.500) and reaches **PR-AUC 0.809** (0.755 for always answering "hit"). At a 0.50 cut-off it labels 638 of 646 titles as hits and scores the same accuracy as always answering "hit" (75.2% vs 75.5%). At a 0.74 cut-off it labels 374 and lifts balanced accuracy from 0.504 to 0.582 while accuracy falls to 60.1%. Whether that trade is worth it depends on what a missed hit costs.
 
-The split mixes eras and recurring directors/actors, and the population is limited to films that reported finances. V1 is not evidence about future films or studio profit. V2 adds synopsis text and team features; the leakage and financial-proxy audits remain later stages.
+**V2** adds the synopsis (150 TF-IDF terms) and director/top-3 cast frequencies: on the same 646 held-out titles the ranking score rises to **0.709** (ROC-AUC) and **0.874** (PR-AUC), with balanced accuracy 0.531 at the 0.50 cut-off. The gain is concentrated in `director_freq`, `release_year`, `log_budget` and `cast1_freq`; no single synopsis word carries much. Because those people features are exactly the ones a random split can flatter, V2 sharpens the case for a group-aware split rather than settling it.
+
+The split mixes eras and recurring directors/actors, and the population is limited to films that reported finances. Neither V1 nor V2 is evidence about future films or studio profit; the leakage and financial-proxy audits remain later stages.
 
 ---
 
@@ -180,7 +182,8 @@ greenlight-ml/
 │   ├── METHODOLOGY.md         # Population definition, selection limits, leakage-safe evaluation protocol
 │   ├── METRICS_AND_ROI.md     # Metric definitions and financial-proxy limitations
 │   ├── EDA_REPORT.md          # Written Stage-1 EDA report: question → method → finding → decision
-│   └── V1_REPORT.md           # Written V1 baseline report: settings, tuning, holdout, limits
+│   ├── V1_REPORT.md           # Written V1 baseline report: settings, tuning, holdout, limits
+│   └── V2_REPORT.md           # Written V2 report: text/people features, ensembles, importance
 ├── artifacts/
 │   └── split_receipt.json     # V1 split receipt: counts, rates, test IDs, data hashes
 ├── notebooks/                 # Interactive Jupyter notebooks for research & reproduction
@@ -196,7 +199,7 @@ greenlight-ml/
 ├── scripts/
 │   ├── download_data.py       # Kaggle dataset fetcher via kagglehub
 │   └── benchmark.py           # Experimental scaffold (not valid evidence yet)
-├── tests/                     # 24 data, split, feature, and metric contract tests
+├── tests/                     # 30 data, split, feature, and metric contract tests
 ├── assets/
 │   └── banner.svg             # Dark-mode cinema aperture vector banner
 ├── .gitignore                 # Strict data & private cache ignore rules

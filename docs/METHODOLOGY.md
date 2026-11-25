@@ -56,7 +56,7 @@ Before reporting model performance:
 5. Compare against a transparent baseline on the same split.
 6. Report prevalence, balanced metrics, uncertainty/variation, and error analysis—not raw accuracy alone.
 
-V1 fixes the target proxy, population, unit of observation, split, and train-only preprocessing, so steps 2–5 hold for this holdout. Step 1 is only partially closed: the prediction date and the per-column availability of the pre-release features are assumed, not audited. Step 6 is partially met — prevalence, balanced metrics, and a confusion matrix are reported, but variation is the 5-fold sweep rather than a confidence interval. The 03–04 notebooks remain unexecuted scaffolds for V2 and the final audit.
+V1 fixes the target proxy, population, unit of observation, split, and train-only preprocessing, so steps 2–5 hold for this holdout. Step 1 is only partially closed: the prediction date and the per-column availability of the pre-release features are assumed, not audited. Step 6 is partially met — prevalence, balanced metrics, and a confusion matrix are reported, but variation is the 5-fold sweep rather than a confidence interval. V2 repeats the protocol with text and people features and reaches ROC-AUC 0.709 / PR-AUC 0.874 on the same holdout ([`V2_REPORT.md`](./V2_REPORT.md)); notebook 04 remains the unexecuted scaffold for the final audit.
 
 ## 4. Leakage and temporal provenance
 

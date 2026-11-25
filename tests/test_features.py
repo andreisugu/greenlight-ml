@@ -7,10 +7,11 @@ from src.features import FeatureEncoder
 
 
 def _row(genres, director, language, overview, release_date, budget, runtime,
-         popularity=0.0, vote_average=0.0, vote_count=0.0):
+         popularity=0.0, vote_average=0.0, vote_count=0.0, cast=("Ann", "Bob", "Cid")):
     return {
         "genres": '[{"id": 1, "name": "%s"}]' % genres,
         "crew": '[{"job": "Director", "name": "%s"}]' % director,
+        "cast": '[%s]' % ", ".join('{"name": "%s"}' % actor for actor in cast),
         "original_language": language,
         "overview": overview,
         "release_date": release_date,
@@ -158,6 +159,67 @@ class FeatureEncoderV1Tests(unittest.TestCase):
         # GridSearchCV clones the pipeline, so the winning encoder is not the object
         # handed in: the encoder is fit inside the search, never once up front.
         self.assertIsNot(fitted_encoder, pipe.named_steps["features"])
+
+
+class FeatureEncoderV2Tests(unittest.TestCase):
+    def setUp(self):
+        self.train = pd.DataFrame([
+            _row("Action", "Alice", "en", "Alpha beta, 1999!", "2000-01-01", 1_000, 100.0,
+                 cast=("Ann", "Bob", "Cid")),
+            _row("Action", "Alice", "en", "alpha gamma", "2000-06-01", 2_000, 120.0,
+                 cast=("Ann", "Bob", "Dee")),
+            _row("Drama", "Zed", "fr", "delta epsilon", "2001-01-01", 3_000, 90.0,
+                 cast=("Ann", "Eve", "Fay")),
+        ])
+        self.test = pd.DataFrame([
+            _row("Drama", "Zed", "fr", "delta epsilon", "2001-01-01", 500, 90.0,
+                 cast=("Ann", "Nobody", "Stranger")),
+        ])
+
+    def test_text_is_cleaned_before_vectorising(self):
+        from src.features import clean_text
+
+        self.assertEqual(clean_text("A Man's 2nd Best: 1945 (Restored!)"),
+                         "a man s nd best restored")
+
+    def test_tfidf_keeps_bigrams(self):
+        encoder = FeatureEncoder(max_tfidf_features=50, include_text=True,
+                                 include_cast=False).fit(self.train)
+
+        terms = list(encoder.tfidf_.get_feature_names_out())
+
+        self.assertIn("alpha beta", terms)
+
+    def test_actor_frequency_matches_training_counts(self):
+        encoder = FeatureEncoder(include_text=False, include_cast=True).fit(self.train)
+
+        self.assertAlmostEqual(encoder.actor_share_["Ann"], 3 / 3)
+        self.assertAlmostEqual(encoder.actor_share_["Bob"], 2 / 3)
+        self.assertAlmostEqual(encoder.actor_share_["Fay"], 1 / 3)
+
+    def test_unseen_actor_scores_zero(self):
+        encoder = FeatureEncoder(include_text=False, include_cast=True).fit(self.train)
+
+        X = encoder.transform(self.test)
+
+        self.assertAlmostEqual(X["cast1_freq"].iloc[0], 1.0)   # Ann appears in all 3
+        self.assertAlmostEqual(X["cast2_freq"].iloc[0], 0.0)   # Nobody unseen
+        self.assertAlmostEqual(X["cast3_freq"].iloc[0], 0.0)   # Stranger unseen
+
+    def test_missing_cast_column_is_rejected(self):
+        frame = self.train.drop(columns=["cast"])
+
+        with self.assertRaisesRegex(ValueError, "cast"):
+            FeatureEncoder(include_text=False, include_cast=True).fit(frame)
+
+    def test_director_frequency_matches_training_counts(self):
+        encoder = FeatureEncoder(include_text=False, include_director=True,
+                                 include_cast=False).fit(self.train)
+
+        X = encoder.transform(self.train)
+
+        self.assertAlmostEqual(X["director_freq"].iloc[0], 2 / 3)
+        self.assertAlmostEqual(X["director_freq"].iloc[2], 1 / 3)
 
 
 if __name__ == "__main__":
