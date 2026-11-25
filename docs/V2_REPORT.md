@@ -3,9 +3,9 @@
 > Companion to [`notebooks/03_advanced_ensemble_model.ipynb`](../notebooks/03_advanced_ensemble_model.ipynb).
 > Every number below is printed by the executed notebook.
 
-**Short version:** adding the synopsis, the director and the lead actors raises the ranking score from 0.604 to
-**0.709**. Most of that is the switch to a tree ensemble — XGBoost on V1's own 29 columns already reaches 0.676. Of the
-new columns, the people ones add 0.037 and the synopsis adds 0.005.
+**Short version:** switching to a tuned tree ensemble and adding the synopsis, the director and the lead actors raises
+the ranking score from 0.604 to **0.709**. Most of that is the switch itself — XGBoost on V1's own 29 columns already
+reaches 0.676. Of the new columns, the people ones add 0.037 and the synopsis adds 0.005.
 
 ## The question
 
