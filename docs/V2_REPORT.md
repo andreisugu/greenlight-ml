@@ -4,8 +4,8 @@
 > Every number below is printed by the executed notebook.
 
 **Short version:** adding the synopsis, the director and the lead actors raises the ranking score from 0.604 to
-**0.709**. Most of that comes from how often a director and the lead actor appear in the training data, not from the
-story text.
+**0.709**. Most of that is the switch to a tree ensemble — XGBoost on V1's own 29 columns already reaches 0.676. Of the
+new columns, the people ones add 0.037 and the synopsis adds 0.005.
 
 ## The question
 
@@ -56,6 +56,22 @@ Best cross-validated ROC-AUC: **0.6911** for XGBoost (300 trees, depth 10, learn
 At the 0.79 cut-off XGBoost finds **46%** of hits with **89%** precision and selects 251 of 646 titles, against 98% recall
 and 77% precision at 0.50. Which is preferable depends on the cost of the two errors, not on the model.
 
+## Where the gain comes from
+
+This is the table that matters. Each row re-fits the same XGBoost settings with one block of features at a time, so the
+gap between rows is the block's contribution, not a guess from feature importance.
+
+| Feature blocks | Test ROC-AUC | Change |
+|---|---:|---:|
+| V1's 29 columns only | 0.6755 | — |
+| + synopsis text | 0.6805 | +0.005 |
+| + director and cast | 0.7129 | +0.037 |
+| + both (V2) | 0.7093 | −0.004 vs. people only |
+
+Two things follow. The model change earns most of the jump from V1's 0.604: a tree ensemble on the *same* 29 columns
+already scores 0.676. Among the new columns, people help about seven times as much as text, and adding text on top of
+people does not help at all — the difference is inside what 646 rows can resolve.
+
 ## New terms
 
 | Term | Plain meaning |
@@ -73,8 +89,10 @@ use them often. Permutation puts `director_freq` (0.057), `release_year` (0.052)
 
 ## What this does not say
 
-- **It does not prove text is useless.** Text contributes, but diffusely. The measurable jump comes from people
-  frequencies, which is a weaker and more suspicious feature than it looks: it encodes *who was cast*, and casting
+- **It does not prove text is useless.** Text adds 0.005 on its own — small, and it disappears when people are already
+  present. Diffuse contributions are real but hard to measure on 646 rows; this is "no detectable gain", not "proven
+  useless".
+- **The people columns are the suspicious ones.** `director_freq` and `cast1_freq` encode *who was cast*, and casting
   correlates with budget and era.
 - **The split flatters V2 specifically.** The same directors and actors appear on both sides of a random split, so a
   frequency feature can partially memorise the training rows. A group-aware split is the honest test and is not in V2.
